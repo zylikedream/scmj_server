@@ -29,7 +29,7 @@ func (l *Login) Handle(request ziface.IRequest) { //处理conn业务的方法
 		zlog.Error("Marshal packet failed")
 		return
 	}
-	if err = request.GetConnection().SendMsg(uint32(protocol.PROTOID_SC_LOGIN_ID), data); err != nil {
+	if err = request.GetConnection().SendMsg(uint32(protocol.PROTOID_SC_LOGIN), data); err != nil {
 		zlog.Errorf("send msg failed, err=%s", err)
 		return
 	}

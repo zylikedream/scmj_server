@@ -28,22 +28,30 @@ const _ = proto.ProtoPackageIsVersion4
 type PROTOID int32
 
 const (
-	PROTOID_EMPTY_ID    PROTOID = 0
-	PROTOID_CS_LOGIN_ID PROTOID = 1
-	PROTOID_SC_LOGIN_ID PROTOID = 2
+	PROTOID_EMPTY PROTOID = 0
+	// 登录
+	PROTOID_CS_LOGIN PROTOID = 1
+	PROTOID_SC_LOGIN PROTOID = 2
+	// 创建房间
+	PROTOID_CS_CREATE_ROOM PROTOID = 3
+	PROTOID_SC_ROOM_INFO   PROTOID = 4
 )
 
 // Enum value maps for PROTOID.
 var (
 	PROTOID_name = map[int32]string{
-		0: "EMPTY_ID",
-		1: "CS_LOGIN_ID",
-		2: "SC_LOGIN_ID",
+		0: "EMPTY",
+		1: "CS_LOGIN",
+		2: "SC_LOGIN",
+		3: "CS_CREATE_ROOM",
+		4: "SC_ROOM_INFO",
 	}
 	PROTOID_value = map[string]int32{
-		"EMPTY_ID":    0,
-		"CS_LOGIN_ID": 1,
-		"SC_LOGIN_ID": 2,
+		"EMPTY":          0,
+		"CS_LOGIN":       1,
+		"SC_LOGIN":       2,
+		"CS_CREATE_ROOM": 3,
+		"SC_ROOM_INFO":   4,
 	}
 )
 
@@ -72,6 +80,52 @@ func (x PROTOID) Number() protoreflect.EnumNumber {
 // Deprecated: Use PROTOID.Descriptor instead.
 func (PROTOID) EnumDescriptor() ([]byte, []int) {
 	return file_scmj_proto_rawDescGZIP(), []int{0}
+}
+
+type PLAY_MODE int32
+
+const (
+	PLAY_MODE_XLCH PLAY_MODE = 0 // 血流成河
+	PLAY_MODE_XZDD PLAY_MODE = 1 // 血战到底
+)
+
+// Enum value maps for PLAY_MODE.
+var (
+	PLAY_MODE_name = map[int32]string{
+		0: "XLCH",
+		1: "XZDD",
+	}
+	PLAY_MODE_value = map[string]int32{
+		"XLCH": 0,
+		"XZDD": 1,
+	}
+)
+
+func (x PLAY_MODE) Enum() *PLAY_MODE {
+	p := new(PLAY_MODE)
+	*p = x
+	return p
+}
+
+func (x PLAY_MODE) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PLAY_MODE) Descriptor() protoreflect.EnumDescriptor {
+	return file_scmj_proto_enumTypes[1].Descriptor()
+}
+
+func (PLAY_MODE) Type() protoreflect.EnumType {
+	return &file_scmj_proto_enumTypes[1]
+}
+
+func (x PLAY_MODE) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PLAY_MODE.Descriptor instead.
+func (PLAY_MODE) EnumDescriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{1}
 }
 
 type CsLogin struct {
@@ -208,6 +262,330 @@ func (x *ScLogin) GetRoomCard() int64 {
 	return 0
 }
 
+type ScmjRule struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlayMode      uint32 `protobuf:"varint,1,opt,name=play_mode,json=playMode,proto3" json:"play_mode,omitempty"`
+	PlayType      uint32 `protobuf:"varint,2,opt,name=play_type,json=playType,proto3" json:"play_type,omitempty"`                  // 玩法类型, 成都麻将，内江麻将等
+	PlayTurn      uint32 `protobuf:"varint,3,opt,name=play_turn,json=playTurn,proto3" json:"play_turn,omitempty"`                  // 局数
+	MaxPoint      uint32 `protobuf:"varint,4,opt,name=max_point,json=maxPoint,proto3" json:"max_point,omitempty"`                  // 最大番数
+	SelfWinType   uint32 `protobuf:"varint,5,opt,name=self_win_type,json=selfWinType,proto3" json:"self_win_type,omitempty"`       // 自摸加底或者加番
+	ExposeWinType uint32 `protobuf:"varint,6,opt,name=expose_win_type,json=exposeWinType,proto3" json:"expose_win_type,omitempty"` // 点杠花点炮或者点杠花自摸
+	IsHsz         uint32 `protobuf:"varint,7,opt,name=is_hsz,json=isHsz,proto3" json:"is_hsz,omitempty"`                           // 是否换三张
+	IsJdui        uint32 `protobuf:"varint,8,opt,name=is_jdui,json=isJdui,proto3" json:"is_jdui,omitempty"`                        // 是否算将对
+	IsMqzz        uint32 `protobuf:"varint,9,opt,name=is_mqzz,json=isMqzz,proto3" json:"is_mqzz,omitempty"`                        // 是否算门清中张
+	IsTdh         uint32 `protobuf:"varint,10,opt,name=is_tdh,json=isTdh,proto3" json:"is_tdh,omitempty"`                          // 是否有天地胡
+}
+
+func (x *ScmjRule) Reset() {
+	*x = ScmjRule{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScmjRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScmjRule) ProtoMessage() {}
+
+func (x *ScmjRule) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScmjRule.ProtoReflect.Descriptor instead.
+func (*ScmjRule) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ScmjRule) GetPlayMode() uint32 {
+	if x != nil {
+		return x.PlayMode
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetPlayType() uint32 {
+	if x != nil {
+		return x.PlayType
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetPlayTurn() uint32 {
+	if x != nil {
+		return x.PlayTurn
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetMaxPoint() uint32 {
+	if x != nil {
+		return x.MaxPoint
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetSelfWinType() uint32 {
+	if x != nil {
+		return x.SelfWinType
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetExposeWinType() uint32 {
+	if x != nil {
+		return x.ExposeWinType
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetIsHsz() uint32 {
+	if x != nil {
+		return x.IsHsz
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetIsJdui() uint32 {
+	if x != nil {
+		return x.IsJdui
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetIsMqzz() uint32 {
+	if x != nil {
+		return x.IsMqzz
+	}
+	return 0
+}
+
+func (x *ScmjRule) GetIsTdh() uint32 {
+	if x != nil {
+		return x.IsTdh
+	}
+	return 0
+}
+
+type CsCreateRoom struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Pid  uint64    `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"` // 玩家房卡数量
+	Rule *ScmjRule `protobuf:"bytes,2,opt,name=rule,proto3" json:"rule,omitempty"`
+}
+
+func (x *CsCreateRoom) Reset() {
+	*x = CsCreateRoom{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CsCreateRoom) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CsCreateRoom) ProtoMessage() {}
+
+func (x *CsCreateRoom) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CsCreateRoom.ProtoReflect.Descriptor instead.
+func (*CsCreateRoom) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CsCreateRoom) GetPid() uint64 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *CsCreateRoom) GetRule() *ScmjRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+type RoomPlayerData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Pid         uint32 `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
+	Photo       uint32 `protobuf:"varint,2,opt,name=photo,proto3" json:"photo,omitempty"`
+	Name        string `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`                                   // 名字
+	Identity    uint32 `protobuf:"varint,4,opt,name=identity,proto3" json:"identity,omitempty"`                          // 身份
+	OnlineState uint32 `protobuf:"varint,5,opt,name=online_state,json=onlineState,proto3" json:"online_state,omitempty"` // 在线状态
+}
+
+func (x *RoomPlayerData) Reset() {
+	*x = RoomPlayerData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *RoomPlayerData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RoomPlayerData) ProtoMessage() {}
+
+func (x *RoomPlayerData) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RoomPlayerData.ProtoReflect.Descriptor instead.
+func (*RoomPlayerData) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RoomPlayerData) GetPid() uint32 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *RoomPlayerData) GetPhoto() uint32 {
+	if x != nil {
+		return x.Photo
+	}
+	return 0
+}
+
+func (x *RoomPlayerData) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RoomPlayerData) GetIdentity() uint32 {
+	if x != nil {
+		return x.Identity
+	}
+	return 0
+}
+
+func (x *RoomPlayerData) GetOnlineState() uint32 {
+	if x != nil {
+		return x.OnlineState
+	}
+	return 0
+}
+
+type ScRoomInfo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	RoomId    uint32            `protobuf:"varint,1,opt,name=room_id,json=roomId,proto3" json:"room_id,omitempty"`
+	Rule      *ScmjRule         `protobuf:"bytes,2,opt,name=rule,proto3" json:"rule,omitempty"`
+	StartTime uint64            `protobuf:"varint,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	Players   []*RoomPlayerData `protobuf:"bytes,4,rep,name=players,proto3" json:"players,omitempty"`
+}
+
+func (x *ScRoomInfo) Reset() {
+	*x = ScRoomInfo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScRoomInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScRoomInfo) ProtoMessage() {}
+
+func (x *ScRoomInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScRoomInfo.ProtoReflect.Descriptor instead.
+func (*ScRoomInfo) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ScRoomInfo) GetRoomId() uint32 {
+	if x != nil {
+		return x.RoomId
+	}
+	return 0
+}
+
+func (x *ScRoomInfo) GetRule() *ScmjRule {
+	if x != nil {
+		return x.Rule
+	}
+	return nil
+}
+
+func (x *ScRoomInfo) GetStartTime() uint64 {
+	if x != nil {
+		return x.StartTime
+	}
+	return 0
+}
+
+func (x *ScRoomInfo) GetPlayers() []*RoomPlayerData {
+	if x != nil {
+		return x.Players
+	}
+	return nil
+}
+
 var File_scmj_proto protoreflect.FileDescriptor
 
 var file_scmj_proto_rawDesc = []byte{
@@ -224,11 +602,58 @@ var file_scmj_proto_rawDesc = []byte{
 	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x65, 0x78, 0x18, 0x04, 0x20, 0x01, 0x28,
 	0x05, 0x52, 0x03, 0x73, 0x65, 0x78, 0x12, 0x1b, 0x0a, 0x09, 0x72, 0x6f, 0x6f, 0x6d, 0x5f, 0x63,
 	0x61, 0x72, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x72, 0x6f, 0x6f, 0x6d, 0x43,
-	0x61, 0x72, 0x64, 0x2a, 0x39, 0x0a, 0x07, 0x50, 0x52, 0x4f, 0x54, 0x4f, 0x49, 0x44, 0x12, 0x0c,
-	0x0a, 0x08, 0x45, 0x4d, 0x50, 0x54, 0x59, 0x5f, 0x49, 0x44, 0x10, 0x00, 0x12, 0x0f, 0x0a, 0x0b,
-	0x43, 0x53, 0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x5f, 0x49, 0x44, 0x10, 0x01, 0x12, 0x0f, 0x0a,
-	0x0b, 0x53, 0x43, 0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x5f, 0x49, 0x44, 0x10, 0x02, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x61, 0x72, 0x64, 0x22, 0xab, 0x02, 0x0a, 0x09, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x72, 0x75, 0x6c,
+	0x65, 0x12, 0x1b, 0x0a, 0x09, 0x70, 0x6c, 0x61, 0x79, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x0d, 0x52, 0x08, 0x70, 0x6c, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x1b,
+	0x0a, 0x09, 0x70, 0x6c, 0x61, 0x79, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x08, 0x70, 0x6c, 0x61, 0x79, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1b, 0x0a, 0x09, 0x70,
+	0x6c, 0x61, 0x79, 0x5f, 0x74, 0x75, 0x72, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x08,
+	0x70, 0x6c, 0x61, 0x79, 0x54, 0x75, 0x72, 0x6e, 0x12, 0x1b, 0x0a, 0x09, 0x6d, 0x61, 0x78, 0x5f,
+	0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x08, 0x6d, 0x61, 0x78,
+	0x50, 0x6f, 0x69, 0x6e, 0x74, 0x12, 0x22, 0x0a, 0x0d, 0x73, 0x65, 0x6c, 0x66, 0x5f, 0x77, 0x69,
+	0x6e, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x0b, 0x73, 0x65,
+	0x6c, 0x66, 0x57, 0x69, 0x6e, 0x54, 0x79, 0x70, 0x65, 0x12, 0x26, 0x0a, 0x0f, 0x65, 0x78, 0x70,
+	0x6f, 0x73, 0x65, 0x5f, 0x77, 0x69, 0x6e, 0x5f, 0x74, 0x79, 0x70, 0x65, 0x18, 0x06, 0x20, 0x01,
+	0x28, 0x0d, 0x52, 0x0d, 0x65, 0x78, 0x70, 0x6f, 0x73, 0x65, 0x57, 0x69, 0x6e, 0x54, 0x79, 0x70,
+	0x65, 0x12, 0x15, 0x0a, 0x06, 0x69, 0x73, 0x5f, 0x68, 0x73, 0x7a, 0x18, 0x07, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x05, 0x69, 0x73, 0x48, 0x73, 0x7a, 0x12, 0x17, 0x0a, 0x07, 0x69, 0x73, 0x5f, 0x6a,
+	0x64, 0x75, 0x69, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x06, 0x69, 0x73, 0x4a, 0x64, 0x75,
+	0x69, 0x12, 0x17, 0x0a, 0x07, 0x69, 0x73, 0x5f, 0x6d, 0x71, 0x7a, 0x7a, 0x18, 0x09, 0x20, 0x01,
+	0x28, 0x0d, 0x52, 0x06, 0x69, 0x73, 0x4d, 0x71, 0x7a, 0x7a, 0x12, 0x15, 0x0a, 0x06, 0x69, 0x73,
+	0x5f, 0x74, 0x64, 0x68, 0x18, 0x0a, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x69, 0x73, 0x54, 0x64,
+	0x68, 0x22, 0x4b, 0x0a, 0x0e, 0x63, 0x73, 0x5f, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x72,
+	0x6f, 0x6f, 0x6d, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04,
+	0x52, 0x03, 0x70, 0x69, 0x64, 0x12, 0x27, 0x0a, 0x04, 0x72, 0x75, 0x6c, 0x65, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x73,
+	0x63, 0x6d, 0x6a, 0x5f, 0x72, 0x75, 0x6c, 0x65, 0x52, 0x04, 0x72, 0x75, 0x6c, 0x65, 0x22, 0x8d,
+	0x01, 0x0a, 0x10, 0x72, 0x6f, 0x6f, 0x6d, 0x5f, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x64,
+	0x61, 0x74, 0x61, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x03, 0x70, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x70, 0x68, 0x6f, 0x74, 0x6f, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x0d, 0x52, 0x05, 0x70, 0x68, 0x6f, 0x74, 0x6f, 0x12, 0x12, 0x0a, 0x04, 0x6e,
+	0x61, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12,
+	0x1a, 0x0a, 0x08, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x18, 0x04, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x08, 0x69, 0x64, 0x65, 0x6e, 0x74, 0x69, 0x74, 0x79, 0x12, 0x21, 0x0a, 0x0c, 0x6f,
+	0x6e, 0x6c, 0x69, 0x6e, 0x65, 0x5f, 0x73, 0x74, 0x61, 0x74, 0x65, 0x18, 0x05, 0x20, 0x01, 0x28,
+	0x0d, 0x52, 0x0b, 0x6f, 0x6e, 0x6c, 0x69, 0x6e, 0x65, 0x53, 0x74, 0x61, 0x74, 0x65, 0x22, 0xa5,
+	0x01, 0x0a, 0x0c, 0x73, 0x63, 0x5f, 0x72, 0x6f, 0x6f, 0x6d, 0x5f, 0x69, 0x6e, 0x66, 0x6f, 0x12,
+	0x17, 0x0a, 0x07, 0x72, 0x6f, 0x6f, 0x6d, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d,
+	0x52, 0x06, 0x72, 0x6f, 0x6f, 0x6d, 0x49, 0x64, 0x12, 0x27, 0x0a, 0x04, 0x72, 0x75, 0x6c, 0x65,
+	0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f,
+	0x6c, 0x2e, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x72, 0x75, 0x6c, 0x65, 0x52, 0x04, 0x72, 0x75, 0x6c,
+	0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x73, 0x74, 0x61, 0x72, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x04, 0x52, 0x09, 0x73, 0x74, 0x61, 0x72, 0x74, 0x54, 0x69, 0x6d, 0x65,
+	0x12, 0x34, 0x0a, 0x07, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28,
+	0x0b, 0x32, 0x1a, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x72, 0x6f, 0x6f,
+	0x6d, 0x5f, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x07, 0x70,
+	0x6c, 0x61, 0x79, 0x65, 0x72, 0x73, 0x2a, 0x56, 0x0a, 0x07, 0x50, 0x52, 0x4f, 0x54, 0x4f, 0x49,
+	0x44, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x4d, 0x50, 0x54, 0x59, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08,
+	0x43, 0x53, 0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x53, 0x43,
+	0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x10, 0x02, 0x12, 0x12, 0x0a, 0x0e, 0x43, 0x53, 0x5f, 0x43,
+	0x52, 0x45, 0x41, 0x54, 0x45, 0x5f, 0x52, 0x4f, 0x4f, 0x4d, 0x10, 0x03, 0x12, 0x10, 0x0a, 0x0c,
+	0x53, 0x43, 0x5f, 0x52, 0x4f, 0x4f, 0x4d, 0x5f, 0x49, 0x4e, 0x46, 0x4f, 0x10, 0x04, 0x2a, 0x1f,
+	0x0a, 0x09, 0x50, 0x4c, 0x41, 0x59, 0x5f, 0x4d, 0x4f, 0x44, 0x45, 0x12, 0x08, 0x0a, 0x04, 0x58,
+	0x4c, 0x43, 0x48, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x58, 0x5a, 0x44, 0x44, 0x10, 0x01, 0x62,
+	0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -243,19 +668,27 @@ func file_scmj_proto_rawDescGZIP() []byte {
 	return file_scmj_proto_rawDescData
 }
 
-var file_scmj_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_scmj_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_scmj_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_scmj_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_scmj_proto_goTypes = []interface{}{
-	(PROTOID)(0),    // 0: protocol.PROTOID
-	(*CsLogin)(nil), // 1: protocol.cs_login
-	(*ScLogin)(nil), // 2: protocol.sc_login
+	(PROTOID)(0),           // 0: protocol.PROTOID
+	(PLAY_MODE)(0),         // 1: protocol.PLAY_MODE
+	(*CsLogin)(nil),        // 2: protocol.cs_login
+	(*ScLogin)(nil),        // 3: protocol.sc_login
+	(*ScmjRule)(nil),       // 4: protocol.scmj_rule
+	(*CsCreateRoom)(nil),   // 5: protocol.cs_create_room
+	(*RoomPlayerData)(nil), // 6: protocol.room_player_data
+	(*ScRoomInfo)(nil),     // 7: protocol.sc_room_info
 }
 var file_scmj_proto_depIdxs = []int32{
-	0, // [0:0] is the sub-list for method output_type
-	0, // [0:0] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	4, // 0: protocol.cs_create_room.rule:type_name -> protocol.scmj_rule
+	4, // 1: protocol.sc_room_info.rule:type_name -> protocol.scmj_rule
+	6, // 2: protocol.sc_room_info.players:type_name -> protocol.room_player_data
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_scmj_proto_init() }
@@ -288,14 +721,62 @@ func file_scmj_proto_init() {
 				return nil
 			}
 		}
+		file_scmj_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScmjRule); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CsCreateRoom); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*RoomPlayerData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[5].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScRoomInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_scmj_proto_rawDesc,
-			NumEnums:      1,
-			NumMessages:   2,
+			NumEnums:      2,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

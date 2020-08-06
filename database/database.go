@@ -26,7 +26,7 @@ const (
 	//DBPORT = 9191
 )
 
-func Init() error {
+func Connect() error {
 	if err := db.Connect(DBADDR, DBPORT); err != nil {
 		zlog.Error("Init, connect error")
 		return err

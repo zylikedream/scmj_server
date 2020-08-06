@@ -10,6 +10,6 @@ const (
 	SCORING_EARTHLY_WIN          // 地胡
 	SCORING_CONCEALED_WIN        // 门清
 	SCORING_MIDDLE_TILE          // 中张
-	SCORING_ONE_SUIT             // 清一色
+	SCORING_SINGLE_SUIT          // 清一色
 	SCORING_BIG_PAIR             // 大对子
 )
