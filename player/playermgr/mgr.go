@@ -90,3 +90,7 @@ func GetPlayerByAccount(account string) (*player.Player, error) {
 	}
 	return ply, nil
 }
+
+func GetPlayerByPid(pid player.PID) *player.Player {
+	return pcache.GetPlayerByPid(pid)
+}

@@ -2,7 +2,7 @@ package playercard
 
 import (
 	"fmt"
-	"zinx-mj/game/card"
+	"zinx-mj/game/gamedefine"
 )
 
 // 玩家手牌
@@ -33,19 +33,19 @@ func NewPlayerCard(maxCardCount int) *PlayerCard {
  * Descrp: 得到某张牌的数量
  * Create: zhangyi 2020-07-03 14:43:07
  */
-func (p *PlayerCard) GetCardNum(card int) int {
-	return p.HandCardMap[card]
+func (p *PlayerCard) GetCardNum(c int) int {
+	return p.HandCardMap[c]
 }
 
 /*
  * Descrp: 出某一张牌
  * Create: zhangyi 2020-07-03 14:42:46
  */
-func (p *PlayerCard) Discard(card int) error {
-	if err := p.DecCard(card, 1); err != nil {
+func (p *PlayerCard) Discard(c int) error {
+	if err := p.DecCard(c, 1); err != nil {
 		return err
 	}
-	p.DiscardCards = append(p.DiscardCards, card)
+	p.DiscardCards = append(p.DiscardCards, c)
 	return nil
 }
 
@@ -53,12 +53,12 @@ func (p *PlayerCard) Discard(card int) error {
  * Descrp: 减少手牌
  * Create: zhangyi 2020-07-03 16:56:18
  */
-func (p *PlayerCard) DecCard(card int, num int) error {
-	if p.GetCardNum(card) < num {
+func (p *PlayerCard) DecCard(c int, num int) error {
+	if p.GetCardNum(c) < num {
 		return fmt.Errorf("dec failed, card not enough, card=%d, num=%d, dec=%d",
-			card, p.GetCardNum(card), num)
+			c, p.GetCardNum(c), num)
 	}
-	p.HandCardMap[card] -= num
+	p.HandCardMap[c] -= num
 	p.CardCount -= num
 	return nil
 }
@@ -78,11 +78,11 @@ func (p *PlayerCard) GetLastDraw() int {
  * Descrp:  摸一张牌
  * Create: zhangyi 2020-07-03 15:02:36
  */
-func (p *PlayerCard) Draw(card int) error {
+func (p *PlayerCard) Draw(c int) error {
 	if p.CardCount >= p.MaxCardCount {
 		return fmt.Errorf("card too much, cardCount=%d, maxCardCount=%d", p.CardCount, p.MaxCardCount)
 	}
-	p.HandCardMap[card] += 1
+	p.HandCardMap[c] += 1
 	p.CardCount++
 	return nil
 }
@@ -95,7 +95,7 @@ func (p *PlayerCard) Draw(card int) error {
 func (p *PlayerCard) GetCardBySuit(cardSuit int) []int {
 	var cards []int
 	for c, num := range p.HandCardMap {
-		if card.GetCardSuit(c) != cardSuit {
+		if gamedefine.GetCardSuit(c) != cardSuit {
 			continue
 		}
 		for i := 0; i < num; i++ {
@@ -109,11 +109,11 @@ func (p *PlayerCard) GetCardBySuit(cardSuit int) []int {
  * Descrp: 杠牌
  * Create: zhangyi 2020-07-03 16:34:57
  */
-func (p *PlayerCard) Kong(card int) error {
-	if err := p.DecCard(card, 3); err != nil {
+func (p *PlayerCard) Kong(c int) error {
+	if err := p.DecCard(c, 3); err != nil {
 		return err
 	}
-	p.KongCards[card] = struct{}{}
+	p.KongCards[c] = struct{}{}
 	return nil
 }
 
@@ -121,15 +121,15 @@ func (p *PlayerCard) Kong(card int) error {
  * Descrp: 明杠牌（碰了以后杠)
  * Create: zhangyi 2020-07-03 16:49:31
  */
-func (p *PlayerCard) ExposedKong(card int) error {
-	if _, ok := p.PongCards[card]; !ok {
-		return fmt.Errorf("can't exposed kong, card not pong, card=%d", card)
+func (p *PlayerCard) ExposedKong(c int) error {
+	if _, ok := p.PongCards[c]; !ok {
+		return fmt.Errorf("can't exposed kong, card not pong, card=%d", c)
 	}
-	if err := p.DecCard(card, 1); err != nil {
+	if err := p.DecCard(c, 1); err != nil {
 		return err
 	}
-	p.KongCards[card] = struct{}{}
-	delete(p.KongCards, card)
+	p.KongCards[c] = struct{}{}
+	delete(p.KongCards, c)
 	return nil
 }
 
@@ -137,11 +137,11 @@ func (p *PlayerCard) ExposedKong(card int) error {
  * Descrp: 暗杠牌
  * Create: zhangyi 2020-07-03 17:03:26
  */
-func (p *PlayerCard) ConcealedKong(card int) error {
-	if err := p.DecCard(card, 4); err != nil {
+func (p *PlayerCard) ConcealedKong(c int) error {
+	if err := p.DecCard(c, 4); err != nil {
 		return err
 	}
-	p.KongCards[card] = struct{}{}
+	p.KongCards[c] = struct{}{}
 	return nil
 }
 
@@ -149,10 +149,15 @@ func (p *PlayerCard) ConcealedKong(card int) error {
  * Descrp: 碰牌
  * Create: zhangyi 2020-07-03 17:10:07
  */
-func (p *PlayerCard) Pong(card int) error {
-	if err := p.DecCard(card, 2); err != nil {
+func (p *PlayerCard) Pong(c int) error {
+	if err := p.DecCard(c, 2); err != nil {
 		return err
 	}
-	p.PongCards[card] = struct{}{}
+	p.PongCards[c] = struct{}{}
 	return nil
+}
+
+func (p *PlayerCard) IsTingCard(c int) bool {
+	_, ok := p.TingCard[c]
+	return ok
 }

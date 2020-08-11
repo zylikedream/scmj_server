@@ -2,7 +2,8 @@ package scmjrule
 
 import (
 	"errors"
-	"zinx-mj/game/card"
+	"github.com/golang/protobuf/proto"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/board"
 	"zinx-mj/game/rule/chow"
 	"zinx-mj/game/rule/deal"
@@ -15,13 +16,27 @@ import (
 	"zinx-mj/game/rule/ting"
 	"zinx-mj/game/rule/win"
 	"zinx-mj/game/table/itable"
-	"zinx-mj/game/table/player"
+	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/player"
 	"zinx-mj/util"
 )
 
+type ScmjRuleData struct {
+	PlayMode      uint32 // 玩法模式
+	GameTurn      uint32 // 游戏轮数
+	MaxPoints     uint32 // 最大番数
+	SelfWinType   uint32 // 自摸类型（加底或者加番）
+	ExposeWinType uint32 // 杠上炮类型（算点炮还是自摸）
+	HszSwitch     uint32 // 是否换三张
+	JdSwitch      uint32 // 是否算将对
+	MqzzSwitch    uint32 // 是否算门清中张
+	TdhSwitch     uint32 // 是否算天地胡
+}
+
 type ScmjRule struct {
+	data           *ScmjRuleData
 	table          itable.IMjTable
-	curPlayerIndex int
+	curPlayerIndex player.PID
 
 	boardRule   irule.IBoard
 	chowRule    irule.IChow
@@ -35,35 +50,35 @@ type ScmjRule struct {
 	dealRule    irule.IDeal
 }
 
-func (s *ScmjRule) GetCurPlayer() *player.TablePlayer {
+func (s *ScmjRule) GetCurPlayer() *tableplayer.TablePlayer {
 	return s.table.GetPlayer(s.curPlayerIndex)
 }
 
-func (s *ScmjRule) IsPlayerTurn(pid int) bool {
+func (s *ScmjRule) IsPlayerTurn(pid player.PID) bool {
 	return s.GetCurPlayer() == s.table.GetPlayer(pid)
 }
 
-func (s *ScmjRule) Chow(pid int, c int) error {
+func (s *ScmjRule) Chow(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
 	return s.chowRule.Chow(ply.PlyCard, c)
 }
 
-func (s *ScmjRule) Discard(pid int, c int) error {
+func (s *ScmjRule) Discard(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
-	return s.discardRule.Discard(ply.PlyCard, c, card.CARD_SUIT_EMPTY)
+	return s.discardRule.Discard(ply.PlyCard, c, gamedefine.CARD_SUIT_EMPTY)
 }
 
-func (s *ScmjRule) Draw(pid int, c int) error {
+func (s *ScmjRule) Draw(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
 	return s.drawRule.Draw(ply.PlyCard, c)
 }
 
-func (s *ScmjRule) Kong(pid int, c int) error {
+func (s *ScmjRule) Kong(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
 	return s.kongRule.Kong(ply.PlyCard, c)
 }
 
-func (s *ScmjRule) Pong(pid int, c int) error {
+func (s *ScmjRule) Pong(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
 	if s.IsPlayerTurn(pid) {
 		return errors.New("can't pong in other turn")
@@ -76,13 +91,13 @@ func (s *ScmjRule) Shuffle() error {
 	return nil
 }
 
-func (s *ScmjRule) UpdateTingCard(pid int) error {
+func (s *ScmjRule) UpdateTingCard(pid player.PID) error {
 	ply := s.table.GetPlayer(pid)
 	ply.PlyCard.TingCard = s.tingRule.GetTingCard(util.IntMapToIntSlice(ply.PlyCard.HandCardMap), s.winRule)
 	return nil
 }
 
-func (s *ScmjRule) Win(pid int, c int) error {
+func (s *ScmjRule) Win(pid player.PID, c int) error {
 	ply := s.table.GetPlayer(pid)
 	if _, ok := ply.PlyCard.TingCard[c]; !ok {
 		return errors.New("can't win not in ting list")
@@ -94,7 +109,15 @@ func (s *ScmjRule) Deal() error {
 	return nil
 }
 
-func NewScmjRule(table itable.IMjTable) irule.IMjRule {
+func (s *ScmjRule) PackToPBMsg() proto.Message {
+	return nil
+}
+
+func (s *ScmjRule) UnpackFromPBMsg(message proto.Message) error {
+	return nil
+}
+
+func NewScmjRule(ruleData *ScmjRuleData, table itable.IMjTable) irule.IMjRule {
 	return &ScmjRule{
 		boardRule:   board.NewThreeSuitBoard(),
 		chowRule:    chow.NewEmptyChow(),
@@ -107,5 +130,6 @@ func NewScmjRule(table itable.IMjTable) irule.IMjRule {
 		winRule:     win.NewGeneralWin(),
 		dealRule:    deal.NewGeneralDeal(),
 		table:       table,
+		data:        ruleData,
 	}
 }

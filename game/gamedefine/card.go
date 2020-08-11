@@ -1,4 +1,4 @@
-package card
+package gamedefine
 
 const (
 	CARD_SUIT_EMPTY     = iota // 空类型

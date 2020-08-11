@@ -1,4 +1,4 @@
-package table
+package gamedefine
 
 const (
 	TABLE_IDENTIY_MASTER  = 1 << iota // 房主

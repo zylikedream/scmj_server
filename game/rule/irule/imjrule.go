@@ -1,15 +1,18 @@
 package irule
 
-import "zinx-mj/game/table/player"
+import (
+	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/player"
+)
 
 type IMjRule interface {
-	Chow(pid int, c int) error
-	Discard(pid int, c int) error
-	Draw(pid int, c int) error
-	Kong(pid int, c int) error
-	Pong(pid int, c int) error
-	Win(pid int, c int) error
+	Chow(pid player.PID, c int) error
+	Discard(pid player.PID, c int) error
+	Draw(pid player.PID, c int) error
+	Kong(pid player.PID, c int) error
+	Pong(pid player.PID, c int) error
+	Win(pid player.PID, c int) error
 
-	GetCurPlayer() *player.TablePlayer
-	IsPlayerTurn(pid int) bool
+	GetCurPlayer() *tableplayer.TablePlayer
+	IsPlayerTurn(pid player.PID) bool
 }

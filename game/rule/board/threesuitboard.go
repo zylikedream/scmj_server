@@ -1,8 +1,8 @@
 package board
 
 import (
-	"zinx-mj/game/card"
 	"zinx-mj/game/card/boardcard"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -20,5 +20,5 @@ func NewThreeSuitBoard() irule.IBoard {
  */
 func (t *threeSuitBoard) NewBoard() *boardcard.BoardCard {
 	// 成都麻将需要筒、条 万
-	return boardcard.NewBoardCardBySuit(card.CARD_SUIT_DOT, card.CARD_SUIT_BAMBOO, card.CARD_SUIT_CHARACTER)
+	return boardcard.NewBoardCardBySuit(gamedefine.CARD_SUIT_DOT, gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_CHARACTER)
 }

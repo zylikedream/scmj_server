@@ -1,7 +1,7 @@
 package win
 
 import (
-	"zinx-mj/game/card"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -18,8 +18,8 @@ func (r *generalWin) CanWin(cards []int) bool {
 	if cardLen == 0 {
 		return false
 	}
-	cardMap := [card.CARD_MAX]int{} // 使用数组来作为Map, 原生的Map太慢了
-	var pairPos []int               // 对子的位置
+	cardMap := [gamedefine.CARD_MAX]int{} // 使用数组来作为Map, 原生的Map太慢了
+	var pairPos []int                     // 对子的位置
 	// 构造map并得到对子的位置
 	for i, c := range cards {
 		cardMap[c] += 1
@@ -46,8 +46,8 @@ func (r *generalWin) CanWin(cards []int) bool {
  * Descrp: 是否都是一组牌(一个顺子或者刻子）
  * Create: zhangyi 2020-08-05 23:11:32
  */
-func isAllMeld(sortCards []int, cardMap *[card.CARD_MAX]int, pair int) bool {
-	cardUsed := [card.CARD_MAX]int{}
+func isAllMeld(sortCards []int, cardMap *[gamedefine.CARD_MAX]int, pair int) bool {
+	cardUsed := [gamedefine.CARD_MAX]int{}
 	cardUsed[pair] = 2 // 用了2个作为了麻将
 	for _, c := range sortCards {
 		cardLeft := cardMap[c] - cardUsed[c]

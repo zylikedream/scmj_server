@@ -1,21 +1,21 @@
 package scmjtable
 
 import (
+	"github.com/golang/protobuf/proto"
 	"time"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/rule/scmjrule"
-	"zinx-mj/game/table"
-	"zinx-mj/game/table/itable"
-	"zinx-mj/game/table/player"
+	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/network/protocol"
+	"zinx-mj/player"
 )
 
 type ScmjTable struct {
-	players        []*player.TablePlayer // 房间的玩家
-	curPlayerIndex int                   // 当前玩家索引
-	gameTurn       uint32                // 游戏轮数
-	maxPoints      uint32                // 最大番数
-	startTm        int64
-	gameRule       irule.IMjRule
+	Id       uint32                     // 桌子ID
+	players  []*tableplayer.TablePlayer // 房间的玩家
+	startTm  int64
+	gameRule irule.IMjRule
 }
 
 func (r *ScmjTable) StartGame() error {
@@ -23,34 +23,34 @@ func (r *ScmjTable) StartGame() error {
 }
 
 func (r *ScmjTable) Update(tm int64) error {
-	panic("implement me")
+	return nil
 }
 
-func (r *ScmjTable) Kong(pid int, crd int) error {
-	panic("implement me")
+func (r *ScmjTable) Kong(pid player.PID, crd int) error {
+	return nil
 }
 
-func (r *ScmjTable) Pong(pid int, crd int) error {
-	panic("implement me")
+func (r *ScmjTable) Pong(pid player.PID, crd int) error {
+	return nil
 }
 
-func (r *ScmjTable) Chow(pid int, crd int) error {
-	panic("implement me")
+func (r *ScmjTable) Chow(pid player.PID, crd int) error {
+	return nil
 }
 
-func (r *ScmjTable) Win(pid int, crd int) error {
-	panic("implement me")
+func (r *ScmjTable) Win(pid player.PID, crd int) error {
+	return nil
 }
 
-func (r *ScmjTable) Draw(pid int) (int, error) {
-	panic("implement me")
+func (r *ScmjTable) Draw(pid player.PID) error {
+	return nil
 }
 
-func (r *ScmjTable) Discard(pid int, card int) error {
-	panic("implement me")
+func (r *ScmjTable) Discard(pid player.PID, card int) error {
+	return nil
 }
 
-func (r *ScmjTable) GetPlayer(pid int) *player.TablePlayer {
+func (r *ScmjTable) GetPlayer(pid player.PID) *tableplayer.TablePlayer {
 	for _, ply := range r.players {
 		if pid == ply.Pid {
 			return ply
@@ -59,14 +59,15 @@ func (r *ScmjTable) GetPlayer(pid int) *player.TablePlayer {
 	return nil
 }
 
-func (r *ScmjTable) Join(plyData *player.TablePlayerData, identity uint32) (*player.TablePlayer, error) {
-	ply := player.NewTablePlayer(plyData, identity)
+func (r *ScmjTable) Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
+	ply := tableplayer.NewTablePlayer(plyData)
+	ply.AddIdentity(identity)
 	r.players = append(r.players, ply)
 	// todo 广播通知
 	return ply, nil
 }
 
-func (r *ScmjTable) Quit(pid int) error {
+func (r *ScmjTable) Quit(pid player.PID) error {
 	panic("implement me")
 }
 
@@ -78,17 +79,25 @@ func (r *ScmjTable) GetMjRule() irule.IMjRule {
 	return r.gameRule
 }
 
-func NewScmjTable(master *player.TablePlayerData, playCount uint32, maxPoints uint32) (itable.IMjTable, error) {
+func (r *ScmjTable) GetID() uint32 {
+	return r.Id
+}
+
+func (r *ScmjTable) PackToPBMsg() proto.Message {
+	reply := &protocol.ScScmjTableInfo{}
+	reply.TableId = r.Id
+	reply.StartTime = reply.GetStartTime()
+	return reply
+}
+
+func NewScmjTable(master *tableplayer.TablePlayerData, rule *scmjrule.ScmjRuleData) (*ScmjTable, error) {
 	t := &ScmjTable{
-		gameTurn:  playCount,
-		maxPoints: maxPoints,
-		startTm:   time.Now().Unix(),
+		startTm: time.Now().Unix(),
 	}
-	t.gameRule = scmjrule.NewScmjRule(t)
-	ply, err := t.Join(master, table.TABLE_IDENTIY_MASTER)
+	t.gameRule = scmjrule.NewScmjRule(rule, t)
+	_, err := t.Join(master, gamedefine.TABLE_IDENTIY_MASTER|gamedefine.TABLE_IDENTIY_PLAYER)
 	if err != nil {
 		return t, err
 	}
-	ply.AddIdentity(table.TABLE_IDENTIY_PLAYER) // 房主可能也是玩家
 	return t, nil
 }

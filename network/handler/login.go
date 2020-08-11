@@ -54,6 +54,7 @@ func (*Login) doLogin(login *protocol.CsLogin, conn ziface.IConnection) *protoco
 	}
 	// 绑定连接
 	ply.Conn = conn
+	conn.SetProperty("pid", ply.Pid)
 
 	reply.Pid = ply.Pid
 	reply.Name = ply.Name

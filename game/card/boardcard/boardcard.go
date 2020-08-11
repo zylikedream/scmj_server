@@ -2,7 +2,7 @@ package boardcard
 
 import (
 	"fmt"
-	"zinx-mj/game/card"
+	"zinx-mj/game/gamedefine"
 )
 
 // 牌桌的麻将牌
@@ -22,7 +22,7 @@ func NewBoardCardBySuit(cardTypes ...int) *BoardCard {
 	for _, cardType := range cardTypes {
 		for i := 1; i <= 9; i++ { // 1到9
 			for j := 0; j < 4; j++ { // 每张牌4张
-				bc.Cards = append(bc.Cards, cardType*card.CARD_BASE+i)
+				bc.Cards = append(bc.Cards, cardType*gamedefine.CARD_BASE+i)
 			}
 		}
 	}

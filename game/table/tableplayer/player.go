@@ -1,10 +1,13 @@
-package player
+package tableplayer
 
-import "zinx-mj/game/card/playercard"
+import (
+	"zinx-mj/game/card/playercard"
+	"zinx-mj/player"
+)
 
-// 解耦RoomPlayer和Player直接的关系
+// 解耦TablePlayer和Player直接的关系
 type TablePlayerData struct {
-	Pid int
+	Pid player.PID
 }
 
 type TablePlayer struct {
@@ -13,11 +16,9 @@ type TablePlayer struct {
 	PlyCard  *playercard.PlayerCard
 }
 
-func NewTablePlayer(playerData *TablePlayerData, identity uint32) *TablePlayer {
+func NewTablePlayer(playerData *TablePlayerData) *TablePlayer {
 	return &TablePlayer{
 		TablePlayerData: *playerData,
-		Identity:        identity,
-		PlyCard:         playercard.NewPlayerCard(14),
 	}
 }
 

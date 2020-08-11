@@ -1,7 +1,7 @@
 package ting
 
 import (
-	"zinx-mj/game/card"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -42,7 +42,7 @@ func (g *generalTing) CanTing(cards []int, winRule irule.IWin) bool {
 func getMaybeTing(cards []int) []int {
 	var maybeCards []int
 	for _, c := range cards {
-		maybeCards = append(maybeCards, card.GetNeighborCards(c)...)
+		maybeCards = append(maybeCards, gamedefine.GetNeighborCards(c)...)
 	}
 	return maybeCards
 }
