@@ -1,7 +1,7 @@
 // 成都麻将
 package cdmj
 
-import "zinx-mj/game/room/iroom"
+import "zinx-mj/game/table/itable"
 
-func InitRule(room iroom.IMjRoom) {
+func InitRule(room itable.IMjTable) {
 }

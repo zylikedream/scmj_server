@@ -1,6 +1,6 @@
 package irule
 
-import "zinx-mj/game/room/player"
+import "zinx-mj/game/table/player"
 
 type IMjRule interface {
 	Chow(pid int, c int) error
@@ -10,6 +10,6 @@ type IMjRule interface {
 	Pong(pid int, c int) error
 	Win(pid int, c int) error
 
-	GetCurPlayer() *player.RoomPlayer
+	GetCurPlayer() *player.TablePlayer
 	IsPlayerTurn(pid int) bool
 }

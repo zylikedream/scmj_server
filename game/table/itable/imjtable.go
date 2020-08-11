@@ -1,11 +1,11 @@
-package iroom
+package itable
 
 import (
-	"zinx-mj/game/room/player"
 	"zinx-mj/game/rule/irule"
+	"zinx-mj/game/table/player"
 )
 
-type IMjRoom interface {
+type IMjTable interface {
 	// 定时更新
 	Update(tm int64) error
 	// 杠
@@ -21,13 +21,13 @@ type IMjRoom interface {
 	// 出牌
 	Discard(pid int, card int) error
 	// 得到当前玩家
-	GetPlayer(pid int) *player.RoomPlayer
+	GetPlayer(pid int) *player.TablePlayer
 	// 加入房间
-	Join(plyData *player.RoomPlayerData, identity uint32) (*player.RoomPlayer, error)
+	Join(plyData *player.TablePlayerData, identity uint32) (*player.TablePlayer, error)
 	// 退出房间
 	Quit(pid int) error
 	// 得到房间开始时间
-	GetRoomStartTime() int64
+	GetStartTime() int64
 	// 得到麻将类型
 	GetMjRule() irule.IMjRule
 	StartGame() error
