@@ -18,13 +18,13 @@ func NewDrawDiscard() irule.IDiscard {
  * Descrp: 玩家必须摸到哪张打哪张
  * Create: zhangyi 2020-07-03 14:44:52
  */
-func (d drawDiscard) Discard(pc *playercard.PlayerCard, crd int, dingqueSuit int) (*playercard.PlayerCard, error) {
+func (d drawDiscard) Discard(pc *playercard.PlayerCard, crd int, dingqueSuit int) error {
 	if crd != pc.GetLastDraw() {
-		return pc, fmt.Errorf("can't discard card different with draw card, card=%d, draw=%d",
+		return fmt.Errorf("can't discard card different with draw card, card=%d, draw=%d",
 			crd, pc.GetLastDraw())
 	}
 	if err := pc.Discard(crd); err != nil {
-		return pc, err
+		return err
 	}
-	return pc, nil
+	return nil
 }

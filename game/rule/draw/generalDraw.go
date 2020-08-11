@@ -13,9 +13,9 @@ func NewGeneralDraw() irule.IDraw {
 	return generalDraw{}
 }
 
-func (g generalDraw) Draw(pc *playercard.PlayerCard, card int) (*playercard.PlayerCard, error) {
+func (g generalDraw) Draw(pc *playercard.PlayerCard, card int) error {
 	if err := pc.Draw(card); err != nil {
-		return pc, err
+		return err
 	}
-	return pc, nil
+	return nil
 }

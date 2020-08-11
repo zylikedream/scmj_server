@@ -12,9 +12,9 @@ func NewGeneralKong() irule.IPong {
 	return &generalPong{}
 }
 
-func (g *generalPong) Pong(pc *playercard.PlayerCard, card int) (*playercard.PlayerCard, error) {
+func (g *generalPong) Pong(pc *playercard.PlayerCard, card int) error {
 	if err := pc.Pong(card); err != nil {
-		return pc, err
+		return err
 	}
-	return pc, nil
+	return nil
 }

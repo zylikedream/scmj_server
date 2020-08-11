@@ -1,6 +1,10 @@
 package scmjrule
 
 import (
+	"errors"
+	"zinx-mj/game/card"
+	"zinx-mj/game/room/iroom"
+	"zinx-mj/game/room/player"
 	"zinx-mj/game/rule/board"
 	"zinx-mj/game/rule/chow"
 	"zinx-mj/game/rule/deal"
@@ -12,9 +16,13 @@ import (
 	"zinx-mj/game/rule/shuffle"
 	"zinx-mj/game/rule/ting"
 	"zinx-mj/game/rule/win"
+	"zinx-mj/util"
 )
 
 type ScmjRule struct {
+	room           iroom.IMjRoom
+	curPlayerIndex int
+
 	boardRule   irule.IBoard
 	chowRule    irule.IChow
 	discardRule irule.IDiscard
@@ -27,48 +35,67 @@ type ScmjRule struct {
 	dealRule    irule.IDeal
 }
 
-func (s ScmjRule) GetBoardRule() irule.IBoard {
-	return s.boardRule
+func (s *ScmjRule) GetCurPlayer() *player.RoomPlayer {
+	return s.room.GetPlayer(s.curPlayerIndex)
 }
 
-func (s ScmjRule) GetChowRule() irule.IChow {
-	return s.chowRule
+func (s *ScmjRule) IsPlayerTurn(pid int) bool {
+	return s.GetCurPlayer() == s.room.GetPlayer(pid)
 }
 
-func (s ScmjRule) GetDiscardRule() irule.IDiscard {
-	return s.discardRule
+func (s *ScmjRule) Chow(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	return s.chowRule.Chow(ply.PlyCard, c)
 }
 
-func (s ScmjRule) GetDrawRule() irule.IDraw {
-	return s.drawRule
+func (s *ScmjRule) Discard(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	return s.discardRule.Discard(ply.PlyCard, c, card.CARD_SUIT_EMPTY)
 }
 
-func (s ScmjRule) GetKongRule() irule.IKong {
-	return s.kongRule
+func (s *ScmjRule) Draw(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	return s.drawRule.Draw(ply.PlyCard, c)
 }
 
-func (s ScmjRule) GetPongRule() irule.IPong {
-	return s.pongRule
+func (s *ScmjRule) Kong(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	return s.kongRule.Kong(ply.PlyCard, c)
 }
 
-func (s ScmjRule) GetShuffleRule() irule.IShuffle {
-	return s.shuffleRule
+func (s *ScmjRule) Pong(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	if s.IsPlayerTurn(pid) {
+		return errors.New("can't pong in other turn")
+	}
+	return s.pongRule.Pong(ply.PlyCard, c)
 }
 
-func (s ScmjRule) GetTingRule() irule.ITing {
-	return s.tingRule
+func (s *ScmjRule) Shuffle() error {
+	//return s.shuffleRule.Shuffle()
+	return nil
 }
 
-func (s ScmjRule) GetWinRule() irule.IWin {
-	return s.winRule
+func (s *ScmjRule) UpdateTingCard(pid int) error {
+	ply := s.room.GetPlayer(pid)
+	ply.PlyCard.TingCard = s.tingRule.GetTingCard(util.IntMapToIntSlice(ply.PlyCard.HandCardMap), s.winRule)
+	return nil
 }
 
-func (s ScmjRule) GetDealRule() irule.IDeal {
-	return s.dealRule
+func (s *ScmjRule) Win(pid int, c int) error {
+	ply := s.room.GetPlayer(pid)
+	if _, ok := ply.PlyCard.TingCard[c]; !ok {
+		return errors.New("can't win not in ting list")
+	}
+	return nil
 }
 
-func NewScmjRule() irule.IMjRule {
-	return ScmjRule{
+func (s *ScmjRule) Deal() error {
+	return nil
+}
+
+func NewScmjRule(room iroom.IMjRoom) irule.IMjRule {
+	return &ScmjRule{
 		boardRule:   board.NewThreeSuitBoard(),
 		chowRule:    chow.NewEmptyChow(),
 		discardRule: discard.NewDingQueDiscard(),
@@ -79,5 +106,6 @@ func NewScmjRule() irule.IMjRule {
 		tingRule:    ting.NewGeneralRule(),
 		winRule:     win.NewGeneralWin(),
 		dealRule:    deal.NewGeneralDeal(),
+		room:        room,
 	}
 }

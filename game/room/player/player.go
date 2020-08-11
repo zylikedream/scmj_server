@@ -1,5 +1,7 @@
 package player
 
+import "zinx-mj/game/card/playercard"
+
 // 解耦RoomPlayer和Player直接的关系
 type RoomPlayerData struct {
 	Pid int
@@ -8,12 +10,14 @@ type RoomPlayerData struct {
 type RoomPlayer struct {
 	RoomPlayerData
 	Identity uint32 // 身份
+	PlyCard  *playercard.PlayerCard
 }
 
 func NewRoomPlayer(playerData *RoomPlayerData, identity uint32) *RoomPlayer {
 	return &RoomPlayer{
 		RoomPlayerData: *playerData,
 		Identity:       identity,
+		PlyCard:        playercard.NewPlayerCard(14),
 	}
 }
 

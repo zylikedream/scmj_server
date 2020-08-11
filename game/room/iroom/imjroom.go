@@ -21,7 +21,6 @@ type IMjRoom interface {
 	// 出牌
 	Discard(pid int, card int) error
 	// 得到当前玩家
-	GetCurPlayer() *player.RoomPlayer
 	GetPlayer(pid int) *player.RoomPlayer
 	// 加入房间
 	Join(plyData *player.RoomPlayerData, identity uint32) (*player.RoomPlayer, error)
@@ -30,8 +29,6 @@ type IMjRoom interface {
 	// 得到房间开始时间
 	GetRoomStartTime() int64
 	// 得到麻将类型
-	GetMjType() int
-	// 得到麻将玩法
 	GetMjRule() irule.IMjRule
 	StartGame() error
 }

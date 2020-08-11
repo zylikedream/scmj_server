@@ -1,14 +1,15 @@
 package irule
 
+import "zinx-mj/game/room/player"
+
 type IMjRule interface {
-	GetBoardRule() IBoard
-	GetChowRule() IChow
-	GetDiscardRule() IDiscard
-	GetDrawRule() IDraw
-	GetKongRule() IKong
-	GetPongRule() IPong
-	GetShuffleRule() IShuffle
-	GetTingRule() ITing
-	GetWinRule() IWin
-	GetDealRule() IDeal
+	Chow(pid int, c int) error
+	Discard(pid int, c int) error
+	Draw(pid int, c int) error
+	Kong(pid int, c int) error
+	Pong(pid int, c int) error
+	Win(pid int, c int) error
+
+	GetCurPlayer() *player.RoomPlayer
+	IsPlayerTurn(pid int) bool
 }

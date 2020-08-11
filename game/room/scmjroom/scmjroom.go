@@ -50,10 +50,6 @@ func (r *ScmjRoom) Discard(pid int, card int) error {
 	panic("implement me")
 }
 
-func (r *ScmjRoom) GetCurPlayer() *player.RoomPlayer {
-	return r.players[r.curPlayerIndex]
-}
-
 func (r *ScmjRoom) GetPlayer(pid int) *player.RoomPlayer {
 	for _, ply := range r.players {
 		if pid == ply.Pid {
@@ -76,10 +72,6 @@ func (r *ScmjRoom) Quit(pid int) error {
 
 func (r *ScmjRoom) GetRoomStartTime() int64 {
 	return r.startTm
-}
-
-func (r *ScmjRoom) GetMjType() int {
-	return room.ROOM_MJ_SCMJ
 }
 
 func (r *ScmjRoom) GetMjRule() irule.IMjRule {

@@ -15,7 +15,7 @@ func (s *SevenPair) IsModel(pc *playercard.PlayerCard) bool {
 		return false
 	}
 	for _, num := range pc.HandCardMap {
-		if num%2 != 0 { // 非两队或者四队
+		if num%2 != 0 { // 非两个或者四个
 			return false
 		}
 	}

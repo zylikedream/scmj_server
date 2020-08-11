@@ -14,6 +14,6 @@ func NewEmptyChow() irule.IChow {
 	return &emptyChow{}
 }
 
-func (e *emptyChow) Chow(cards *playercard.PlayerCard, card int) (*playercard.PlayerCard, error) {
-	return cards, errors.New("chow card not allowed")
+func (e *emptyChow) Chow(cards *playercard.PlayerCard, card int) error {
+	return errors.New("chow card not allowed")
 }

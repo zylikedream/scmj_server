@@ -7,7 +7,9 @@ import (
 
 // 玩家手牌
 type PlayerCard struct {
+	pid          int
 	HandCardMap  map[int]int      // 手牌map
+	TingCard     map[int]struct{} // 以听的牌
 	DiscardCards []int            // 玩家已打出的手牌
 	DrawCards    []int            // 玩家已摸到的手牌
 	KongCards    map[int]struct{} // 玩家杠的牌

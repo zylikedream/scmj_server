@@ -16,14 +16,14 @@ func NewGeneralRule() irule.ITing {
  * Descrp: 得到玩家可以听的牌
  * Create: zhangyi 2020-08-03 22:20:26
  */
-func (g *generalTing) GetTingCard(cards []int, winRule irule.IWin) []int {
-	tingCards := make([]int, 0)
+func (g *generalTing) GetTingCard(cards []int, winRule irule.IWin) map[int]struct{} {
+	tingCards := make(map[int]struct{})
 	// 循环将可能听的牌，带入到手牌，再用胡牌算法检测是否可胡
 	maybeCards := getMaybeTing(cards)
 	for _, c := range maybeCards {
 		cards = append(cards, c)
 		if winRule.CanWin(cards) {
-			tingCards = append(tingCards, c)
+			tingCards[c] = struct{}{}
 		}
 		cards = cards[:len(cards)-1]
 	}

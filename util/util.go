@@ -1,5 +1,7 @@
 package util
 
+import "sort"
+
 func RemoveSlice(sli []int, startPos int, length int) []int {
 	remainCards := make([]int, 0, len(sli)-length)
 	remainCards = append(remainCards, sli[:startPos]...)
@@ -22,5 +24,6 @@ func IntMapToIntSlice(src map[int]int) []int {
 			slice = append(slice, k)
 		}
 	}
+	sort.Ints(slice)
 	return slice
 }
