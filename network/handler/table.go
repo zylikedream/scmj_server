@@ -23,9 +23,9 @@ func (c *Table) Handle(request ziface.IRequest) { //处理conn业务的方法
 		zlog.Errorf("unpack login proto failed\n")
 		return
 	}
-	zlog.Debugf("create room: pid=%d, rule=%v\n", req.Pid, req.Rule)
-
 	pid := util.GetConnPid(request.GetConnection())
+	zlog.Debugf("create room: pid=%d, rule=%v\n", pid, req.Rule)
+
 	reply := c.doCreateTable(pid, req, request.GetConnection())
 	data, err := proto.Marshal(reply)
 	if err != nil {
@@ -39,13 +39,12 @@ func (c *Table) Handle(request ziface.IRequest) { //处理conn业务的方法
 }
 
 func (c *Table) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) *protocol.ScScmjTableInfo {
-	reply := &protocol.ScScmjTableInfo{}
 	table, err := tablemgr.CreateTable(pid, gamedefine.TABLE_TYPE_SCMJ, req)
-
 	if err != nil {
 		zlog.Errorf("create table failed")
 		return nil
 	}
+	reply := table.PackToPBMsg().(*protocol.ScScmjTableInfo)
 	// 得到玩家已有对象
 	return reply
 }

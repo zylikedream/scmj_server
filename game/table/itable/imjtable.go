@@ -30,7 +30,6 @@ type IMjTable interface {
 	Quit(pid player.PID) error
 	// 得到房间开始时间
 	GetStartTime() int64
-	// 得到麻将类型
 	GetMjRule() irule.IMjRule
 	StartGame() error
 	GetID() uint32

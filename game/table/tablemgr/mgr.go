@@ -5,6 +5,7 @@ import (
 	"github.com/aceld/zinx/zlog"
 	"github.com/golang/protobuf/proto"
 	"zinx-mj/game/gamedefine"
+	"zinx-mj/game/rule/scmjrule"
 	"zinx-mj/game/table/itable"
 	"zinx-mj/game/table/scmjtable"
 	"zinx-mj/network/protocol"
@@ -34,11 +35,11 @@ func CreateTable(pid player.PID, tableType int, message proto.Message) (itable.I
 	return mjtable, nil
 }
 
-func createScmjTable(pid player.PID, message proto.Message) (itable.IMjTable, error) {
-	msg, ok := message.(*protocol.CsCreateScmjTable)
+func createScmjTable(pid player.PID, req proto.Message) (itable.IMjTable, error) {
+	msg, ok := req.(*protocol.CsCreateScmjTable)
 	if !ok {
-		zlog.Error("wrong message type %T", message)
-		return nil, fmt.Errorf("wrong message type %T", message)
+		zlog.Error("wrong message type %T", req)
+		return nil, fmt.Errorf("wrong message type %T", req)
 	}
 	ply := playermgr.GetPlayerByPid(pid)
 	if ply == nil {
@@ -46,7 +47,8 @@ func createScmjTable(pid player.PID, message proto.Message) (itable.IMjTable, er
 		return nil, fmt.Errorf("can't find ply, pid=%d", pid)
 	}
 	master := util.PackTablePlayerDataFromPly(ply)
-	ruleData := util.PackScmjRuleFromPBRule(msg.GetRule())
+	ruleData := &scmjrule.ScmjRuleData{}
+	ruleData.UnpackFromPBMsg(msg.GetRule())
 	table, err := scmjtable.NewScmjTable(master, ruleData)
 	if err != nil {
 		return nil, fmt.Errorf("new scmj table failed")

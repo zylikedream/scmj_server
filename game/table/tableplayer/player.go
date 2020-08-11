@@ -12,8 +12,9 @@ type TablePlayerData struct {
 
 type TablePlayer struct {
 	TablePlayerData
-	Identity uint32 // 身份
-	PlyCard  *playercard.PlayerCard
+	Identity    uint32 // 身份
+	OnlineState byte   // 是否在线
+	PlyCard     *playercard.PlayerCard
 }
 
 func NewTablePlayer(playerData *TablePlayerData) *TablePlayer {

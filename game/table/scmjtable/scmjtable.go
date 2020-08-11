@@ -86,7 +86,18 @@ func (r *ScmjTable) GetID() uint32 {
 func (r *ScmjTable) PackToPBMsg() proto.Message {
 	reply := &protocol.ScScmjTableInfo{}
 	reply.TableId = r.Id
-	reply.StartTime = reply.GetStartTime()
+	reply.StartTime = r.GetStartTime()
+	reply.Rule = r.gameRule.GetRuleData().PackToPBMsg().(*protocol.ScmjRule)
+	for _, ply := range r.players {
+		plyData := &protocol.TablePlayerData{
+			Pid:         ply.Pid,
+			Photo:       0,
+			Name:        "",
+			Identity:    ply.Identity,
+			OnlineState: uint32(ply.OnlineState),
+		}
+		reply.Players = append(reply.Players, plyData)
+	}
 	return reply
 }
 

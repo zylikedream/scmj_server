@@ -1,6 +1,7 @@
 package irule
 
 import (
+	"github.com/golang/protobuf/proto"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/player"
 )
@@ -15,4 +16,11 @@ type IMjRule interface {
 
 	GetCurPlayer() *tableplayer.TablePlayer
 	IsPlayerTurn(pid player.PID) bool
+
+	GetRuleData() IMjRuleData
+}
+
+type IMjRuleData interface {
+	PackToPBMsg() proto.Message
+	UnpackFromPBMsg(message proto.Message) error
 }

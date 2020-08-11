@@ -3,9 +3,7 @@ package util
 import (
 	"github.com/aceld/zinx/ziface"
 	"sort"
-	"zinx-mj/game/rule/scmjrule"
 	"zinx-mj/game/table/tableplayer"
-	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 )
 
@@ -51,33 +49,4 @@ func PackTablePlayerDataFromPly(ply *player.Player) *tableplayer.TablePlayerData
 	return &tableplayer.TablePlayerData{
 		Pid: ply.Pid,
 	}
-}
-
-func PackScmjRuleFromPBRule(rule *protocol.ScmjRule) *scmjrule.ScmjRuleData {
-	return &scmjrule.ScmjRuleData{
-		GameTurn:      rule.GetPlayTurn(),
-		MaxPoints:     rule.GetMaxPoint(),
-		SelfWinType:   rule.GetSelfWinType(),
-		ExposeWinType: rule.GetExposeWinType(),
-		HszSwitch:     rule.GetHszSwitch(),
-		JdSwitch:      rule.GetJdSwitch(),
-		MqzzSwitch:    rule.GetMqzzSwitch(),
-		TdhSwitch:     rule.GetTdhSwitch(),
-		PlayMode:      rule.GetPlayMode(),
-	}
-}
-
-func PackScmjRuleToPBRule(rule *scmjrule.ScmjRuleData) *protocol.ScmjRule {
-	return &protocol.ScmjRule{
-		PlayMode:      rule.PlayMode,
-		PlayTurn:      rule.GameTurn,
-		MaxPoint:      rule.MaxPoints,
-		SelfWinType:   rule.SelfWinType,
-		ExposeWinType: rule.ExposeWinType,
-		HszSwitch:     rule.HszSwitch,
-		JdSwitch:      rule.JdSwitch,
-		MqzzSwitch:    rule.MqzzSwitch,
-		TdhSwitch:     rule.TdhSwitch,
-	}
-
 }
