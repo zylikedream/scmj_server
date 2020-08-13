@@ -19,7 +19,7 @@ func NewServer() *Server {
 
 func (s *Server) initRoute() error {
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_LOGIN), &handler.Login{})
-	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_ROOM), &handler.CreateRoom{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.Table{})
 	return nil
 }
 
