@@ -1,9 +1,8 @@
-package scmjrule
+package gamerule
 
 import (
 	"errors"
 	"github.com/golang/protobuf/proto"
-	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/board"
 	"zinx-mj/game/rule/chow"
 	"zinx-mj/game/rule/deal"
@@ -19,7 +18,6 @@ import (
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
-	"zinx-mj/util"
 )
 
 type ScmjRuleData struct {
@@ -67,7 +65,7 @@ func (s *ScmjRuleData) UnpackFromPBMsg(msg proto.Message) error {
 
 type ScmjRule struct {
 	data           *ScmjRuleData
-	table          itable.IMjTable
+	table          itable.ITable
 	curPlayerIndex player.PID
 
 	boardRule   irule.IBoard
@@ -82,70 +80,35 @@ type ScmjRule struct {
 	dealRule    irule.IDeal
 }
 
+func (s *ScmjRule) UnLockRound(key int) error {
+	panic("implement me")
+}
+
+func (s *ScmjRule) ChangeRound() error {
+	panic("implement me")
+}
+
+func (s *ScmjRule) LockRound(key int) error {
+	panic("implement me")
+}
+
+func (s *ScmjRule) IsRoundLocked() bool {
+	panic("implement me")
+}
+
 func (s *ScmjRule) GetCurPlayer() *tableplayer.TablePlayer {
 	return s.table.GetPlayer(s.curPlayerIndex)
 }
 
-func (s *ScmjRule) IsPlayerTurn(pid player.PID) bool {
+func (s *ScmjRule) IsPlayerRound(pid player.PID) bool {
 	return s.GetCurPlayer() == s.table.GetPlayer(pid)
 }
 
-func (s *ScmjRule) Chow(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	return s.chowRule.Chow(ply.PlyCard, c)
-}
-
-func (s *ScmjRule) Discard(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	return s.discardRule.Discard(ply.PlyCard, c, gamedefine.CARD_SUIT_EMPTY)
-}
-
-func (s *ScmjRule) Draw(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	return s.drawRule.Draw(ply.PlyCard, c)
-}
-
-func (s *ScmjRule) Kong(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	return s.kongRule.Kong(ply.PlyCard, c)
-}
-
-func (s *ScmjRule) Pong(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	if s.IsPlayerTurn(pid) {
-		return errors.New("can't pong in other turn")
-	}
-	return s.pongRule.Pong(ply.PlyCard, c)
-}
-
-func (s *ScmjRule) Shuffle() error {
-	//return s.shuffleRule.Shuffle()
-	return nil
-}
-
-func (s *ScmjRule) UpdateTingCard(pid player.PID) error {
-	ply := s.table.GetPlayer(pid)
-	ply.PlyCard.TingCard = s.tingRule.GetTingCard(util.IntMapToIntSlice(ply.PlyCard.HandCardMap), s.winRule)
-	return nil
-}
-
-func (s *ScmjRule) Win(pid player.PID, c int) error {
-	ply := s.table.GetPlayer(pid)
-	if _, ok := ply.PlyCard.TingCard[c]; !ok {
-		return errors.New("can't win not in ting list")
-	}
-	return nil
-}
-
-func (s *ScmjRule) Deal() error {
-	return nil
-}
-
-func (s *ScmjRule) GetRuleData() irule.IMjRuleData {
+func (s *ScmjRule) GetRuleData() irule.IRuleData {
 	return s.data
 }
 
-func NewScmjRule(ruleData *ScmjRuleData, table itable.IMjTable) *ScmjRule {
+func NewScmjRule(ruleData *ScmjRuleData, table itable.ITable) *ScmjRule {
 	return &ScmjRule{
 		boardRule:   board.NewThreeSuitBoard(),
 		chowRule:    chow.NewEmptyChow(),
