@@ -66,7 +66,7 @@ func (s *ScmjRuleData) UnpackFromPBMsg(msg proto.Message) error {
 type ScmjRule struct {
 	data           *ScmjRuleData
 	table          itable.ITable
-	curPlayerIndex player.PID
+	curPlayerIndex int
 
 	boardRule   irule.IBoard
 	chowRule    irule.IChow
@@ -80,32 +80,20 @@ type ScmjRule struct {
 	dealRule    irule.IDeal
 }
 
-func (s *ScmjRule) UnLockRound(key int) error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) ChangeRound() error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) LockRound(key int) error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) IsRoundLocked() bool {
-	panic("implement me")
-}
-
 func (s *ScmjRule) GetCurPlayer() *tableplayer.TablePlayer {
-	return s.table.GetPlayer(s.curPlayerIndex)
+	return s.table.GetPlayerByIndex(s.curPlayerIndex)
 }
 
 func (s *ScmjRule) IsPlayerRound(pid player.PID) bool {
-	return s.GetCurPlayer() == s.table.GetPlayer(pid)
+	return s.GetCurPlayer() == s.table.GetPlayerByPid(pid)
 }
 
 func (s *ScmjRule) GetRuleData() irule.IRuleData {
 	return s.data
+}
+
+func (s *ScmjRule) Operate(op irule.IOperate) error {
+	return nil
 }
 
 func NewScmjRule(ruleData *ScmjRuleData, table itable.ITable) *ScmjRule {

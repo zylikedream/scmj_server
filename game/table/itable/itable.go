@@ -8,7 +8,8 @@ import (
 )
 
 type ITable interface {
-	GetPlayer(pid player.PID) *tableplayer.TablePlayer
+	GetPlayerByPid(pid player.PID) *tableplayer.TablePlayer
+	GetPlayerByIndex(index int) *tableplayer.TablePlayer
 	// 加入间坐姿
 	Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)
 	// 退出桌子

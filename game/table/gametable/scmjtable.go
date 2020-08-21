@@ -17,8 +17,8 @@ type GameTable struct {
 	gameRule irule.IRule
 }
 
-func (g *GameTable) Operate(operate irule.IOperate) error {
-	panic("implement me")
+func (g *GameTable) Operate(op irule.IOperate) error {
+	return g.gameRule.Operate(op)
 }
 
 func (g *GameTable) GetRule() irule.IRule {
@@ -33,13 +33,20 @@ func (g *GameTable) Start() error {
 	return nil
 }
 
-func (g *GameTable) GetPlayer(pid player.PID) *tableplayer.TablePlayer {
+func (g *GameTable) GetPlayerByPid(pid player.PID) *tableplayer.TablePlayer {
 	for _, ply := range g.players {
 		if pid == ply.Pid {
 			return ply
 		}
 	}
 	return nil
+}
+
+func (g *GameTable) GetPlayerByIndex(index int) *tableplayer.TablePlayer {
+	if index < 0 || index >= len(g.players) {
+		return nil
+	}
+	return g.players[index]
 }
 
 func (g *GameTable) Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {

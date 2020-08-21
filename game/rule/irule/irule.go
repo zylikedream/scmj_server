@@ -10,11 +10,7 @@ type IRule interface {
 	GetCurPlayer() *tableplayer.TablePlayer
 	IsPlayerRound(pid player.PID) bool
 	GetRuleData() IRuleData
-
-	ChangeRound() error
-	LockRound(key int) error
-	UnLockRound(key int) error
-	IsRoundLocked() bool
+	Operate(op IOperate) error
 }
 
 type IRuleData interface {
