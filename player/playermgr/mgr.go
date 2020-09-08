@@ -1,11 +1,12 @@
 package playermgr
 
 import (
-	"github.com/aceld/zinx/zlog"
-	"github.com/zheng-ji/goSnowFlake"
 	"time"
 	"zinx-mj/database"
 	"zinx-mj/player"
+
+	"github.com/aceld/zinx/zlog"
+	"github.com/zheng-ji/goSnowFlake"
 )
 
 type PID = player.PID
@@ -66,7 +67,7 @@ func CreatePlayer(account string) (*player.Player, error) {
 		zlog.Errorf("create player failed, account=%s, err=%s\n", account, err)
 		return nil, err
 	}
-	zlog.Info("create player success, account=%s\n", account)
+	zlog.Infof("create player success, account=%s\n", account)
 	return p, nil
 }
 

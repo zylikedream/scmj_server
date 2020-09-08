@@ -1,10 +1,12 @@
 package player
 
 import (
-	"github.com/aceld/zinx/ziface"
 	"zinx-mj/database/define"
+
+	"github.com/aceld/zinx/ziface"
 )
 
+// 玩家PID类型
 type PID = uint64
 
 type Player struct {

@@ -1,50 +1,84 @@
 package handler
 
 import (
-	"github.com/aceld/zinx/ziface"
-	"github.com/aceld/zinx/zlog"
-	"github.com/aceld/zinx/znet"
-	"github.com/golang/protobuf/proto"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/table/tablemgr"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 	"zinx-mj/util"
+
+	"github.com/aceld/zinx/ziface"
+	"github.com/aceld/zinx/zlog"
+	"github.com/aceld/zinx/znet"
+	"github.com/golang/protobuf/proto"
 )
 
-type Table struct {
+type CreateTable struct {
 	znet.BaseRouter
 }
 
-func (c *Table) Handle(request ziface.IRequest) { //处理conn业务的方法
+func (c *CreateTable) Handle(request ziface.IRequest) { //处理conn业务的方法
 	data := request.GetData()
 	req := &protocol.CsCreateScmjTable{}
 	if err := proto.Unmarshal(data, req); err != nil {
-		zlog.Errorf("unpack login proto failed\n")
+		zlog.Errorf("unpack create table proto failed, err=%s\n", err)
 		return
 	}
 	pid := util.GetConnPid(request.GetConnection())
-	zlog.Debugf("create room: pid=%d, rule=%v\n", pid, req.Rule)
+	//zlog.Debugf("create table: pid=%d, rule=%v\n", pid, req.Rule)
 
 	reply := c.doCreateTable(pid, req, request.GetConnection())
-	data, err := proto.Marshal(reply)
-	if err != nil {
-		zlog.Error("Marshal packet failed")
-		return
-	}
-	if err = request.GetConnection().SendMsg(uint32(protocol.PROTOID_SC_TABLE_INFO), data); err != nil {
+	if err := util.SendMsg(pid, protocol.PROTOID_SC_TABLE_INFO, reply); err != nil {
 		zlog.Errorf("send msg failed, err=%s", err)
 		return
 	}
 }
 
-func (c *Table) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) *protocol.ScScmjTableInfo {
-	table, err := tablemgr.CreateTable(pid, gamedefine.TABLE_TYPE_SCMJ, req)
+func (c *CreateTable) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) *protocol.ScScmjTableInfo {
+
+	master, err := util.PackTablePlayerDataFromPly(pid)
 	if err != nil {
-		zlog.Errorf("create table failed")
+		return nil
+	}
+	table, err := tablemgr.CreateTable(master, gamedefine.TABLE_TYPE_SCMJ, req)
+	if err != nil {
 		return nil
 	}
 	reply := table.PackToPBMsg().(*protocol.ScScmjTableInfo)
 	// 得到玩家已有对象
 	return reply
+}
+
+type JoinTable struct {
+	znet.BaseRouter
+}
+
+func (c *JoinTable) Handle(request ziface.IRequest) {
+	data := request.GetData()
+	req := &protocol.CsJoinTable{}
+	if err := proto.Unmarshal(data, req); err != nil {
+		zlog.Errorf("unpack join table proto failed, err=%w\n", err)
+		return
+	}
+	tb := tablemgr.GetTable(req.TableId)
+	if tb == nil {
+		zlog.Errorf("get table failed, id=%d", req.TableId)
+		return
+	}
+
+	pid := util.GetConnPid(request.GetConnection())
+	plyData, err := util.PackTablePlayerDataFromPly(pid)
+	if err != nil {
+		return
+	}
+	_, err = tb.Join(plyData, gamedefine.TABLE_IDENTIY_PLAYER)
+	if err != nil {
+		return
+	}
+	reply := tb.PackToPBMsg().(*protocol.ScScmjTableInfo)
+
+	if err = util.SendMsg(pid, protocol.PROTOID_SC_TABLE_INFO, reply); err != nil {
+		zlog.Errorf("send msg failed, err=%s", err)
+		return
+	}
 }

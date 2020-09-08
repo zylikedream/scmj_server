@@ -1,13 +1,15 @@
 package itable
 
 import (
-	"github.com/golang/protobuf/proto"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/player"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type ITable interface {
+	GetID() uint32
 	GetPlayer(pid player.PID) *tableplayer.TablePlayer
 	// 加入间坐姿
 	Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)

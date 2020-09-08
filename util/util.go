@@ -1,10 +1,17 @@
 package util
 
 import (
-	"github.com/aceld/zinx/ziface"
+	"fmt"
 	"sort"
 	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/mjerror"
+	"zinx-mj/network/protocol"
 	"zinx-mj/player"
+	"zinx-mj/player/playermgr"
+
+	"github.com/golang/protobuf/proto"
+
+	"github.com/aceld/zinx/ziface"
 )
 
 func RemoveSlice(sli []int, startPos int, length int) []int {
@@ -45,8 +52,33 @@ func GetConnPid(conn ziface.IConnection) player.PID {
 	return data.(player.PID)
 }
 
-func PackTablePlayerDataFromPly(ply *player.Player) *tableplayer.TablePlayerData {
-	return &tableplayer.TablePlayerData{
-		Pid: ply.Pid,
+func GetPidConn(pid player.PID) ziface.IConnection {
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return nil
 	}
+	return ply.Conn
+}
+
+func PackTablePlayerDataFromPly(pid player.PID) (*tableplayer.TablePlayerData, error) {
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return nil, fmt.Errorf("pid=%d:%w", pid, mjerror.ErrPlyNotFound)
+	}
+	return &tableplayer.TablePlayerData{
+		Pid:  ply.Pid,
+		Name: ply.Name,
+	}, nil
+}
+
+func SendMsg(pid player.PID, protoID protocol.PROTOID, msg proto.Message) error {
+	data, err := proto.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("marshal packet failed, %w", err)
+	}
+	conn := GetPidConn(pid)
+	if err = conn.SendMsg(uint32(protoID), data); err != nil {
+		return fmt.Errorf("send msg failed, %w", err)
+	}
+	return nil
 }

@@ -1,12 +1,13 @@
 package server
 
 import (
-	"github.com/aceld/zinx/ziface"
-	"github.com/aceld/zinx/zlog"
-	"github.com/aceld/zinx/znet"
 	"zinx-mj/database"
 	"zinx-mj/network/handler"
 	"zinx-mj/network/protocol"
+
+	"github.com/aceld/zinx/ziface"
+	"github.com/aceld/zinx/zlog"
+	"github.com/aceld/zinx/znet"
 )
 
 type Server struct {
@@ -19,7 +20,8 @@ func NewServer() *Server {
 
 func (s *Server) initRoute() error {
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_LOGIN), &handler.Login{})
-	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.Table{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.CreateTable{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_JOIN_TABLE), &handler.JoinTable{})
 	return nil
 }
 

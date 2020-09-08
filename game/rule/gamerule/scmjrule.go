@@ -2,7 +2,6 @@ package gamerule
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"zinx-mj/game/rule/board"
 	"zinx-mj/game/rule/chow"
 	"zinx-mj/game/rule/deal"
@@ -18,11 +17,14 @@ import (
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type ScmjRuleData struct {
 	PlayMode      uint32 // 玩法模式
 	GameTurn      uint32 // 游戏轮数
+	MaxPlayer     int    // 最大游戏人数
 	MaxPoints     uint32 // 最大番数
 	SelfWinType   uint32 // 自摸类型（加底或者加番）
 	ExposeWinType uint32 // 杠上炮类型（算点炮还是自摸）
@@ -43,6 +45,7 @@ func (s *ScmjRuleData) PackToPBMsg() proto.Message {
 		JdSwitch:      s.JdSwitch,
 		MqzzSwitch:    s.MqzzSwitch,
 		TdhSwitch:     s.TdhSwitch,
+		MaxPlayer:     uint32(s.MaxPlayer),
 	}
 }
 
@@ -60,6 +63,7 @@ func (s *ScmjRuleData) UnpackFromPBMsg(msg proto.Message) error {
 	s.MqzzSwitch = rule.GetMqzzSwitch()
 	s.TdhSwitch = rule.GetTdhSwitch()
 	s.PlayMode = rule.GetPlayMode()
+	s.MaxPlayer = int(rule.GetMaxPlayer())
 	return nil
 }
 
@@ -80,22 +84,6 @@ type ScmjRule struct {
 	dealRule    irule.IDeal
 }
 
-func (s *ScmjRule) UnLockRound(key int) error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) ChangeRound() error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) LockRound(key int) error {
-	panic("implement me")
-}
-
-func (s *ScmjRule) IsRoundLocked() bool {
-	panic("implement me")
-}
-
 func (s *ScmjRule) GetCurPlayer() *tableplayer.TablePlayer {
 	return s.table.GetPlayer(s.curPlayerIndex)
 }
@@ -106,6 +94,22 @@ func (s *ScmjRule) IsPlayerRound(pid player.PID) bool {
 
 func (s *ScmjRule) GetRuleData() irule.IRuleData {
 	return s.data
+}
+
+func (s *ScmjRule) GetMaxPlayer() int {
+	return s.data.MaxPlayer
+}
+
+func (s *ScmjRule) InitCard() [][]int {
+	const HAND_CARD_NUM = 13
+	board := s.boardRule.NewBoard()
+	s.shuffleRule.Shuffle(board.Cards)
+	var plyCards [][]int
+	for i := 0; i < s.data.MaxPlayer; i++ {
+		plyCards = append(plyCards, board.Cards[:HAND_CARD_NUM])
+		board.Cards = board.Cards[HAND_CARD_NUM:]
+	}
+	return plyCards
 }
 
 func NewScmjRule(ruleData *ScmjRuleData, table itable.ITable) *ScmjRule {

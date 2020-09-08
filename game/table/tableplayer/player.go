@@ -7,7 +7,8 @@ import (
 
 // 解耦TablePlayer和Player直接的关系
 type TablePlayerData struct {
-	Pid player.PID
+	Pid  player.PID
+	Name string
 }
 
 type TablePlayer struct {

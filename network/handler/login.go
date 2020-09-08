@@ -1,13 +1,15 @@
 package handler
 
 import (
+	"zinx-mj/network/protocol"
+	"zinx-mj/player/playermgr"
+	"zinx-mj/util"
+
 	"github.com/aceld/zinx/ziface"
 	"github.com/aceld/zinx/zlog"
 	"github.com/aceld/zinx/znet"
 	"github.com/golang/protobuf/proto"
 	"go.mongodb.org/mongo-driver/mongo"
-	"zinx-mj/network/protocol"
-	"zinx-mj/player/playermgr"
 )
 
 type Login struct {
@@ -24,12 +26,7 @@ func (l *Login) Handle(request ziface.IRequest) { //处理conn业务的方法
 	zlog.Debugf("user login: username=%s, password=%s\n", login.Account, login.Password)
 
 	reply := l.doLogin(login, request.GetConnection())
-	data, err := proto.Marshal(reply)
-	if err != nil {
-		zlog.Error("Marshal packet failed")
-		return
-	}
-	if err = request.GetConnection().SendMsg(uint32(protocol.PROTOID_SC_LOGIN), data); err != nil {
+	if err := util.SendMsg(util.GetConnPid(request.GetConnection()), protocol.PROTOID_SC_LOGIN, reply); err != nil {
 		zlog.Errorf("send msg failed, err=%s", err)
 		return
 	}
