@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 	"zinx-mj/game/gamedefine"
-	"zinx-mj/game/rule/gamerule"
-	"zinx-mj/game/table/gametable"
+	"zinx-mj/game/table/gametable/sccardtable"
 	"zinx-mj/game/table/itable"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/network/protocol"
@@ -88,17 +88,23 @@ func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (it
 		return nil, fmt.Errorf("wrong message type %T%w", req, ErrCreateTableFailed)
 	}
 
-	ruleData := &gamerule.ScmjRuleData{}
-	ruleData.UnpackFromPBMsg(msg.GetRule())
+	tableData := &sccardtable.ScTableData{}
+	tableData.UnpackFromPBMsg(msg.GetRule())
 	tableID, err := poolPop()
 	if err != nil {
 		return nil, fmt.Errorf("get table id failed%w", ErrCreateTableFailed)
 	}
-	table, err := gametable.NewTable(tableID, master)
+	table, err := sccardtable.NewTable(tableID, master, tableData)
 	if err != nil {
 		return nil, fmt.Errorf("new scmj table failed")
 	}
-	gameRule := gamerule.NewScmjRule(ruleData, table)
-	table.SetRule(gameRule)
 	return table, nil
+}
+
+func Update(delta time.Duration) {
+	tableLock.RLock()
+	defer tableLock.RUnlock()
+	for _, table := range tables {
+		table.Update(delta)
+	}
 }

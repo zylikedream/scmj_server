@@ -1,6 +1,6 @@
 package mjerror
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	ErrPlyNotFound = errors.New("find ply failed")

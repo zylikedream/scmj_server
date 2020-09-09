@@ -1,6 +1,7 @@
 package itable
 
 import (
+	"time"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/player"
@@ -18,14 +19,12 @@ type ITable interface {
 	// 得到桌子开始时间
 	GetStartTime() int64
 
-	GetRule() irule.IRule
-	SetRule(rule irule.IRule)
-
-	Start() error
 	// 桌子编号
 	GetTableNumber() uint32
 
 	PackToPBMsg() proto.Message
 
 	Operate(operate_data irule.IOperate) error
+
+	Update(delta time.Duration)
 }

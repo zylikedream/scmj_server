@@ -1,7 +1,9 @@
 package server
 
 import (
+	"time"
 	"zinx-mj/database"
+	"zinx-mj/game/table/tablemgr"
 	"zinx-mj/network/handler"
 	"zinx-mj/network/protocol"
 
@@ -10,8 +12,11 @@ import (
 	"github.com/aceld/zinx/znet"
 )
 
+const serverFrame = 20
+
 type Server struct {
-	core ziface.IServer
+	core      ziface.IServer
+	frameTick <-chan time.Time
 }
 
 func NewServer() *Server {
@@ -38,9 +43,22 @@ func (s *Server) Init() error {
 		return err
 	}
 
+	s.frameTick = time.Tick(1000 * time.Millisecond / serverFrame)
 	return nil
 }
 
 func (s *Server) Run() {
-	s.core.Serve()
+	go s.core.Serve()
+	go s.FixUpdate()
+}
+
+func (s *Server) FixUpdate() {
+	cur := time.Now()
+	for {
+		<-s.frameTick
+		delta := time.Since(cur)
+		cur = time.Now()
+
+		tablemgr.Update(delta)
+	}
 }
