@@ -1,13 +1,15 @@
 package sccardtable
 
 import (
-	"github.com/sadlil/go-trigger"
 	"sync"
+
+	"github.com/sadlil/go-trigger"
 )
 
 const (
 	EVENT_JOIN       = "event_join"
-	EVENT_GAME_START = "game_start"
+	EVENT_GAME_START = "event_game_start"
+	EVENT_DRAW_CARD  = "event_draw_card"
 )
 
 type event struct {
@@ -17,8 +19,9 @@ type event struct {
 
 type ScTableEvent struct {
 	trigger.Trigger
-	events []event
-	mu     sync.Mutex
+	events    []event
+	eventsMap []event
+	mu        sync.Mutex
 }
 
 func NewScTableEvent() *ScTableEvent {

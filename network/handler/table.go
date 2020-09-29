@@ -5,6 +5,7 @@ import (
 	"zinx-mj/game/table/tablemgr"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
+	"zinx-mj/player/playermgr"
 	"zinx-mj/util"
 
 	"github.com/aceld/zinx/ziface"
@@ -44,6 +45,11 @@ func (c *CreateTable) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTa
 	if err != nil {
 		return nil
 	}
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return nil
+	}
+	ply.SetTableID(table.GetID())
 	reply := table.PackToPBMsg().(*protocol.ScScmjTableInfo)
 	// 得到玩家已有对象
 	return reply
@@ -75,10 +81,42 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	if err != nil {
 		return
 	}
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return
+	}
+	ply.SetTableID(tb.GetID())
+
 	reply := tb.PackToPBMsg().(*protocol.ScScmjTableInfo)
 
 	if err = util.SendMsg(pid, protocol.PROTOID_SC_TABLE_INFO, reply); err != nil {
 		zlog.Errorf("send msg failed, err=%s", err)
+		return
+	}
+
+}
+
+type DiscardCard struct {
+	znet.BaseRouter
+}
+
+func (c *DiscardCard) Handle(request ziface.IRequest) {
+	data := request.GetData()
+	req := &protocol.CsDiscardCard{}
+	if err := proto.Unmarshal(data, req); err != nil {
+		zlog.Errorf("unpack join table proto failed, err=%w\n", err)
+		return
+	}
+
+	pid := util.GetConnPid(request.GetConnection())
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return
+	}
+
+	tb := tablemgr.GetTable(ply.TableID)
+	if err := tb.DiscardCard(pid, int(req.Card)); err != nil {
+		zlog.Errorf("discard failed, pid=%d, card=%d, err=%s", pid, req.Card, err)
 		return
 	}
 }

@@ -27,4 +27,6 @@ type ITable interface {
 	Operate(operate_data irule.IOperate) error
 
 	Update(delta time.Duration)
+
+	DiscardCard(pid player.PID, card int) error
 }

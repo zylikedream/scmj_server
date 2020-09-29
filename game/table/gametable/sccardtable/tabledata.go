@@ -2,8 +2,9 @@ package sccardtable
 
 import (
 	"errors"
-	"github.com/golang/protobuf/proto"
 	"zinx-mj/network/protocol"
+
+	"github.com/golang/protobuf/proto"
 )
 
 type ScTableData struct {
@@ -20,7 +21,7 @@ type ScTableData struct {
 }
 
 func (s *ScTableData) PackToPBMsg() proto.Message {
-	return &protocol.ScmjRule{
+	return &protocol.ScmjData{
 		PlayMode:      s.PlayMode,
 		PlayTurn:      s.GameTurn,
 		MaxPoint:      s.MaxPoints,
@@ -35,7 +36,7 @@ func (s *ScTableData) PackToPBMsg() proto.Message {
 }
 
 func (s *ScTableData) UnpackFromPBMsg(msg proto.Message) error {
-	rule, ok := msg.(*protocol.ScmjRule)
+	rule, ok := msg.(*protocol.ScmjData)
 	if !ok {
 		return errors.New("wrong message type")
 	}

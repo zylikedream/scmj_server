@@ -8,7 +8,7 @@ import (
 type generalPong struct {
 }
 
-func NewGeneralKong() irule.IPong {
+func NewGeneralPong() irule.IPong {
 	return &generalPong{}
 }
 
@@ -17,4 +17,8 @@ func (g *generalPong) Pong(pc *playercard.PlayerCard, card int) error {
 		return err
 	}
 	return nil
+}
+
+func (g *generalPong) CanPong(pc *playercard.PlayerCard, card int) bool {
+	return pc.GetCardNum(card) >= 2
 }

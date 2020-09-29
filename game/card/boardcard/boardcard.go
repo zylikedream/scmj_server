@@ -7,7 +7,8 @@ import (
 
 // 牌桌的麻将牌
 type BoardCard struct {
-	Cards        []int // 总的牌
+	CardsTotal   []int // 总的牌
+	Cards        []int // 剩余的牌
 	DiscardCards []int // 玩家已出的牌
 	DrawCards    []int // 玩家已摸的牌
 }
@@ -22,10 +23,12 @@ func NewBoardCardBySuit(cardTypes ...int) *BoardCard {
 	for _, cardType := range cardTypes {
 		for i := 1; i <= 9; i++ { // 1到9
 			for j := 0; j < 4; j++ { // 每张牌4张
-				bc.Cards = append(bc.Cards, cardType*gamedefine.CARD_BASE+i)
+				bc.CardsTotal = append(bc.CardsTotal, cardType*gamedefine.CARD_BASE+i)
 			}
 		}
 	}
+	bc.Cards = make([]int, len(bc.CardsTotal))
+	copy(bc.Cards, bc.CardsTotal)
 	return bc
 }
 

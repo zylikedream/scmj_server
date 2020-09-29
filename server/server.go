@@ -27,6 +27,7 @@ func (s *Server) initRoute() error {
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_LOGIN), &handler.Login{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.CreateTable{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_JOIN_TABLE), &handler.JoinTable{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_DISCARD_CARD), &handler.DiscardCard{})
 	return nil
 }
 
@@ -48,8 +49,8 @@ func (s *Server) Init() error {
 }
 
 func (s *Server) Run() {
-	go s.core.Serve()
 	go s.FixUpdate()
+	s.core.Serve()
 }
 
 func (s *Server) FixUpdate() {

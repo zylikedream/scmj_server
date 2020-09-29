@@ -18,11 +18,14 @@ type PlayerCard struct {
 	MaxCardCount int              // 玩家最大手牌数量
 }
 
-func NewPlayerCard(maxCardCount int) *PlayerCard {
+func New(handCards []int, maxCardCount int) *PlayerCard {
 	playerCard := &PlayerCard{
 		MaxCardCount: maxCardCount,
 	}
-	playerCard.HandCardMap = make(map[int]int)
+	playerCard.HandCardMap = make(map[int]int, maxCardCount)
+	for _, card := range handCards {
+		playerCard.HandCardMap[card] += 1
+	}
 	playerCard.KongCards = make(map[int]struct{})
 	playerCard.PongCards = make(map[int]struct{})
 
@@ -160,4 +163,22 @@ func (p *PlayerCard) Pong(c int) error {
 func (p *PlayerCard) IsTingCard(c int) bool {
 	_, ok := p.TingCard[c]
 	return ok
+}
+
+func (p *PlayerCard) GetCardTotalCount() int {
+	var totalCount = 0
+	for _, count := range p.HandCardMap {
+		totalCount += count
+	}
+	return totalCount
+}
+
+func (p *PlayerCard) GetCardArray() []int {
+	var cards []int
+	for card, count := range p.HandCardMap {
+		for i := 0; i < count; i++ {
+			cards = append(cards, card)
+		}
+	}
+	return cards
 }

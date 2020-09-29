@@ -89,7 +89,7 @@ func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (it
 	}
 
 	tableData := &sccardtable.ScTableData{}
-	tableData.UnpackFromPBMsg(msg.GetRule())
+	tableData.UnpackFromPBMsg(msg.GetData())
 	tableID, err := poolPop()
 	if err != nil {
 		return nil, fmt.Errorf("get table id failed%w", ErrCreateTableFailed)

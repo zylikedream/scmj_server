@@ -38,27 +38,46 @@ const (
 	// 加入牌桌
 	PROTOID_CS_JOIN_TABLE PROTOID = 5
 	PROTOID_SC_JOIN_TABLE PROTOID = 6
+	// 通知手牌
+	PROTOID_SC_CARD_INFO PROTOID = 7
+	// 通知游戏局数开始
+	PROTOID_SC_GAME_TURN_START PROTOID = 8
+	// 摸牌
+	PROTOID_SC_DRAW_CARD PROTOID = 9
+	// 出牌
+	PROTOID_CS_DISCARD_CARD PROTOID = 10
+	PROTOID_SC_DISCARD_CARD PROTOID = 11
 )
 
 // Enum value maps for PROTOID.
 var (
 	PROTOID_name = map[int32]string{
-		0: "EMPTY",
-		1: "CS_LOGIN",
-		2: "SC_LOGIN",
-		3: "CS_CREATE_TABLE",
-		4: "SC_TABLE_INFO",
-		5: "CS_JOIN_TABLE",
-		6: "SC_JOIN_TABLE",
+		0:  "EMPTY",
+		1:  "CS_LOGIN",
+		2:  "SC_LOGIN",
+		3:  "CS_CREATE_TABLE",
+		4:  "SC_TABLE_INFO",
+		5:  "CS_JOIN_TABLE",
+		6:  "SC_JOIN_TABLE",
+		7:  "SC_CARD_INFO",
+		8:  "SC_GAME_TURN_START",
+		9:  "SC_DRAW_CARD",
+		10: "CS_DISCARD_CARD",
+		11: "SC_DISCARD_CARD",
 	}
 	PROTOID_value = map[string]int32{
-		"EMPTY":           0,
-		"CS_LOGIN":        1,
-		"SC_LOGIN":        2,
-		"CS_CREATE_TABLE": 3,
-		"SC_TABLE_INFO":   4,
-		"CS_JOIN_TABLE":   5,
-		"SC_JOIN_TABLE":   6,
+		"EMPTY":              0,
+		"CS_LOGIN":           1,
+		"SC_LOGIN":           2,
+		"CS_CREATE_TABLE":    3,
+		"SC_TABLE_INFO":      4,
+		"CS_JOIN_TABLE":      5,
+		"SC_JOIN_TABLE":      6,
+		"SC_CARD_INFO":       7,
+		"SC_GAME_TURN_START": 8,
+		"SC_DRAW_CARD":       9,
+		"CS_DISCARD_CARD":    10,
+		"SC_DISCARD_CARD":    11,
 	}
 )
 
@@ -269,7 +288,7 @@ func (x *ScLogin) GetRoomCard() int64 {
 	return 0
 }
 
-type ScmjRule struct {
+type ScmjData struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
@@ -286,8 +305,8 @@ type ScmjRule struct {
 	MaxPlayer     uint32 `protobuf:"varint,10,opt,name=max_player,json=maxPlayer,proto3" json:"max_player,omitempty"`              // 最大游戏人数
 }
 
-func (x *ScmjRule) Reset() {
-	*x = ScmjRule{}
+func (x *ScmjData) Reset() {
+	*x = ScmjData{}
 	if protoimpl.UnsafeEnabled {
 		mi := &file_scmj_proto_msgTypes[2]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -295,13 +314,13 @@ func (x *ScmjRule) Reset() {
 	}
 }
 
-func (x *ScmjRule) String() string {
+func (x *ScmjData) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*ScmjRule) ProtoMessage() {}
+func (*ScmjData) ProtoMessage() {}
 
-func (x *ScmjRule) ProtoReflect() protoreflect.Message {
+func (x *ScmjData) ProtoReflect() protoreflect.Message {
 	mi := &file_scmj_proto_msgTypes[2]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -313,75 +332,75 @@ func (x *ScmjRule) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use ScmjRule.ProtoReflect.Descriptor instead.
-func (*ScmjRule) Descriptor() ([]byte, []int) {
+// Deprecated: Use ScmjData.ProtoReflect.Descriptor instead.
+func (*ScmjData) Descriptor() ([]byte, []int) {
 	return file_scmj_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *ScmjRule) GetPlayMode() uint32 {
+func (x *ScmjData) GetPlayMode() uint32 {
 	if x != nil {
 		return x.PlayMode
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetPlayTurn() uint32 {
+func (x *ScmjData) GetPlayTurn() uint32 {
 	if x != nil {
 		return x.PlayTurn
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetMaxPoint() uint32 {
+func (x *ScmjData) GetMaxPoint() uint32 {
 	if x != nil {
 		return x.MaxPoint
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetSelfWinType() uint32 {
+func (x *ScmjData) GetSelfWinType() uint32 {
 	if x != nil {
 		return x.SelfWinType
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetExposeWinType() uint32 {
+func (x *ScmjData) GetExposeWinType() uint32 {
 	if x != nil {
 		return x.ExposeWinType
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetHszSwitch() uint32 {
+func (x *ScmjData) GetHszSwitch() uint32 {
 	if x != nil {
 		return x.HszSwitch
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetJdSwitch() uint32 {
+func (x *ScmjData) GetJdSwitch() uint32 {
 	if x != nil {
 		return x.JdSwitch
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetMqzzSwitch() uint32 {
+func (x *ScmjData) GetMqzzSwitch() uint32 {
 	if x != nil {
 		return x.MqzzSwitch
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetTdhSwitch() uint32 {
+func (x *ScmjData) GetTdhSwitch() uint32 {
 	if x != nil {
 		return x.TdhSwitch
 	}
 	return 0
 }
 
-func (x *ScmjRule) GetMaxPlayer() uint32 {
+func (x *ScmjData) GetMaxPlayer() uint32 {
 	if x != nil {
 		return x.MaxPlayer
 	}
@@ -393,7 +412,7 @@ type CsCreateScmjTable struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Rule *ScmjRule `protobuf:"bytes,1,opt,name=rule,proto3" json:"rule,omitempty"`
+	Data *ScmjData `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
 }
 
 func (x *CsCreateScmjTable) Reset() {
@@ -428,9 +447,9 @@ func (*CsCreateScmjTable) Descriptor() ([]byte, []int) {
 	return file_scmj_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *CsCreateScmjTable) GetRule() *ScmjRule {
+func (x *CsCreateScmjTable) GetData() *ScmjData {
 	if x != nil {
-		return x.Rule
+		return x.Data
 	}
 	return nil
 }
@@ -520,7 +539,7 @@ type ScScmjTableInfo struct {
 	unknownFields protoimpl.UnknownFields
 
 	TableId   uint32             `protobuf:"varint,1,opt,name=table_id,json=tableId,proto3" json:"table_id,omitempty"`
-	Rule      *ScmjRule          `protobuf:"bytes,2,opt,name=rule,proto3" json:"rule,omitempty"`
+	Data      *ScmjData          `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
 	StartTime int64              `protobuf:"varint,3,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
 	Players   []*TablePlayerData `protobuf:"bytes,4,rep,name=players,proto3" json:"players,omitempty"`
 }
@@ -564,9 +583,9 @@ func (x *ScScmjTableInfo) GetTableId() uint32 {
 	return 0
 }
 
-func (x *ScScmjTableInfo) GetRule() *ScmjRule {
+func (x *ScScmjTableInfo) GetData() *ScmjData {
 	if x != nil {
-		return x.Rule
+		return x.Data
 	}
 	return nil
 }
@@ -695,6 +714,375 @@ func (x *ScJoinTable) GetPlayer() *TablePlayerData {
 	return nil
 }
 
+type PlyCardData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	HandCard []int32 `protobuf:"varint,1,rep,packed,name=hand_card,json=handCard,proto3" json:"hand_card,omitempty"`
+}
+
+func (x *PlyCardData) Reset() {
+	*x = PlyCardData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PlyCardData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlyCardData) ProtoMessage() {}
+
+func (x *PlyCardData) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlyCardData.ProtoReflect.Descriptor instead.
+func (*PlyCardData) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *PlyCardData) GetHandCard() []int32 {
+	if x != nil {
+		return x.HandCard
+	}
+	return nil
+}
+
+type TableCardData struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Total int32 `protobuf:"varint,1,opt,name=total,proto3" json:"total,omitempty"` // 总的牌
+	Left  int32 `protobuf:"varint,2,opt,name=left,proto3" json:"left,omitempty"`   // 剩余的牌
+}
+
+func (x *TableCardData) Reset() {
+	*x = TableCardData{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *TableCardData) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TableCardData) ProtoMessage() {}
+
+func (x *TableCardData) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TableCardData.ProtoReflect.Descriptor instead.
+func (*TableCardData) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *TableCardData) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *TableCardData) GetLeft() int32 {
+	if x != nil {
+		return x.Left
+	}
+	return 0
+}
+
+type ScCardInfo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	PlyCard   []*PlyCardData `protobuf:"bytes,1,rep,name=ply_card,json=plyCard,proto3" json:"ply_card,omitempty"`
+	TableCard *TableCardData `protobuf:"bytes,2,opt,name=table_card,json=tableCard,proto3" json:"table_card,omitempty"`
+}
+
+func (x *ScCardInfo) Reset() {
+	*x = ScCardInfo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScCardInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScCardInfo) ProtoMessage() {}
+
+func (x *ScCardInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScCardInfo.ProtoReflect.Descriptor instead.
+func (*ScCardInfo) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ScCardInfo) GetPlyCard() []*PlyCardData {
+	if x != nil {
+		return x.PlyCard
+	}
+	return nil
+}
+
+func (x *ScCardInfo) GetTableCard() *TableCardData {
+	if x != nil {
+		return x.TableCard
+	}
+	return nil
+}
+
+type ScGameTurnStart struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	DiePoint int32 `protobuf:"varint,1,opt,name=die_point,json=diePoint,proto3" json:"die_point,omitempty"` // 筛子点数
+}
+
+func (x *ScGameTurnStart) Reset() {
+	*x = ScGameTurnStart{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScGameTurnStart) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScGameTurnStart) ProtoMessage() {}
+
+func (x *ScGameTurnStart) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScGameTurnStart.ProtoReflect.Descriptor instead.
+func (*ScGameTurnStart) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ScGameTurnStart) GetDiePoint() int32 {
+	if x != nil {
+		return x.DiePoint
+	}
+	return 0
+}
+
+type ScDrawCard struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Pid  uint64 `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
+	Card int32  `protobuf:"varint,2,opt,name=card,proto3" json:"card,omitempty"`
+}
+
+func (x *ScDrawCard) Reset() {
+	*x = ScDrawCard{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[12]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScDrawCard) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScDrawCard) ProtoMessage() {}
+
+func (x *ScDrawCard) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[12]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScDrawCard.ProtoReflect.Descriptor instead.
+func (*ScDrawCard) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ScDrawCard) GetPid() uint64 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
+func (x *ScDrawCard) GetCard() int32 {
+	if x != nil {
+		return x.Card
+	}
+	return 0
+}
+
+type CsDiscardCard struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Card int32 `protobuf:"varint,1,opt,name=card,proto3" json:"card,omitempty"`
+	Pos  int32 `protobuf:"varint,2,opt,name=pos,proto3" json:"pos,omitempty"`
+}
+
+func (x *CsDiscardCard) Reset() {
+	*x = CsDiscardCard{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[13]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CsDiscardCard) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CsDiscardCard) ProtoMessage() {}
+
+func (x *CsDiscardCard) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[13]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CsDiscardCard.ProtoReflect.Descriptor instead.
+func (*CsDiscardCard) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CsDiscardCard) GetCard() int32 {
+	if x != nil {
+		return x.Card
+	}
+	return 0
+}
+
+func (x *CsDiscardCard) GetPos() int32 {
+	if x != nil {
+		return x.Pos
+	}
+	return 0
+}
+
+type ScDiscardCard struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Card int32  `protobuf:"varint,1,opt,name=card,proto3" json:"card,omitempty"`
+	Pid  uint64 `protobuf:"varint,2,opt,name=pid,proto3" json:"pid,omitempty"`
+}
+
+func (x *ScDiscardCard) Reset() {
+	*x = ScDiscardCard{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_scmj_proto_msgTypes[14]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *ScDiscardCard) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScDiscardCard) ProtoMessage() {}
+
+func (x *ScDiscardCard) ProtoReflect() protoreflect.Message {
+	mi := &file_scmj_proto_msgTypes[14]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScDiscardCard.ProtoReflect.Descriptor instead.
+func (*ScDiscardCard) Descriptor() ([]byte, []int) {
+	return file_scmj_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ScDiscardCard) GetCard() int32 {
+	if x != nil {
+		return x.Card
+	}
+	return 0
+}
+
+func (x *ScDiscardCard) GetPid() uint64 {
+	if x != nil {
+		return x.Pid
+	}
+	return 0
+}
+
 var File_scmj_proto protoreflect.FileDescriptor
 
 var file_scmj_proto_rawDesc = []byte{
@@ -711,8 +1099,8 @@ var file_scmj_proto_rawDesc = []byte{
 	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x65, 0x78, 0x18, 0x04, 0x20, 0x01, 0x28,
 	0x05, 0x52, 0x03, 0x73, 0x65, 0x78, 0x12, 0x1b, 0x0a, 0x09, 0x72, 0x6f, 0x6f, 0x6d, 0x5f, 0x63,
 	0x61, 0x72, 0x64, 0x18, 0x05, 0x20, 0x01, 0x28, 0x03, 0x52, 0x08, 0x72, 0x6f, 0x6f, 0x6d, 0x43,
-	0x61, 0x72, 0x64, 0x22, 0xc9, 0x02, 0x0a, 0x09, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x72, 0x75, 0x6c,
-	0x65, 0x12, 0x1b, 0x0a, 0x09, 0x70, 0x6c, 0x61, 0x79, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x01,
+	0x61, 0x72, 0x64, 0x22, 0xc9, 0x02, 0x0a, 0x09, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x64, 0x61, 0x74,
+	0x61, 0x12, 0x1b, 0x0a, 0x09, 0x70, 0x6c, 0x61, 0x79, 0x5f, 0x6d, 0x6f, 0x64, 0x65, 0x18, 0x01,
 	0x20, 0x01, 0x28, 0x0d, 0x52, 0x08, 0x70, 0x6c, 0x61, 0x79, 0x4d, 0x6f, 0x64, 0x65, 0x12, 0x1b,
 	0x0a, 0x09, 0x70, 0x6c, 0x61, 0x79, 0x5f, 0x74, 0x75, 0x72, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28,
 	0x0d, 0x52, 0x08, 0x70, 0x6c, 0x61, 0x79, 0x54, 0x75, 0x72, 0x6e, 0x12, 0x1b, 0x0a, 0x09, 0x6d,
@@ -733,9 +1121,9 @@ var file_scmj_proto_rawDesc = []byte{
 	0x12, 0x1d, 0x0a, 0x0a, 0x6d, 0x61, 0x78, 0x5f, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x18, 0x0a,
 	0x20, 0x01, 0x28, 0x0d, 0x52, 0x09, 0x6d, 0x61, 0x78, 0x50, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x22,
 	0x3f, 0x0a, 0x14, 0x63, 0x73, 0x5f, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x5f, 0x73, 0x63, 0x6d,
-	0x6a, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x12, 0x27, 0x0a, 0x04, 0x72, 0x75, 0x6c, 0x65, 0x18,
+	0x6a, 0x5f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x12, 0x27, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18,
 	0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c,
-	0x2e, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x72, 0x75, 0x6c, 0x65, 0x52, 0x04, 0x72, 0x75, 0x6c, 0x65,
+	0x2e, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61,
 	0x22, 0x8e, 0x01, 0x0a, 0x11, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x70, 0x6c, 0x61, 0x79, 0x65,
 	0x72, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18, 0x01, 0x20,
 	0x01, 0x28, 0x04, 0x52, 0x03, 0x70, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x70, 0x68, 0x6f, 0x74,
@@ -748,9 +1136,9 @@ var file_scmj_proto_rawDesc = []byte{
 	0x65, 0x22, 0xae, 0x01, 0x0a, 0x12, 0x73, 0x63, 0x5f, 0x73, 0x63, 0x6d, 0x6a, 0x5f, 0x74, 0x61,
 	0x62, 0x6c, 0x65, 0x5f, 0x69, 0x6e, 0x66, 0x6f, 0x12, 0x19, 0x0a, 0x08, 0x74, 0x61, 0x62, 0x6c,
 	0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0d, 0x52, 0x07, 0x74, 0x61, 0x62, 0x6c,
-	0x65, 0x49, 0x64, 0x12, 0x27, 0x0a, 0x04, 0x72, 0x75, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x65, 0x49, 0x64, 0x12, 0x27, 0x0a, 0x04, 0x64, 0x61, 0x74, 0x61, 0x18, 0x02, 0x20, 0x01, 0x28,
 	0x0b, 0x32, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x73, 0x63, 0x6d,
-	0x6a, 0x5f, 0x72, 0x75, 0x6c, 0x65, 0x52, 0x04, 0x72, 0x75, 0x6c, 0x65, 0x12, 0x1d, 0x0a, 0x0a,
+	0x6a, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61, 0x12, 0x1d, 0x0a, 0x0a,
 	0x73, 0x74, 0x61, 0x72, 0x74, 0x5f, 0x74, 0x69, 0x6d, 0x65, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03,
 	0x52, 0x09, 0x73, 0x74, 0x61, 0x72, 0x74, 0x54, 0x69, 0x6d, 0x65, 0x12, 0x35, 0x0a, 0x07, 0x70,
 	0x6c, 0x61, 0x79, 0x65, 0x72, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x70,
@@ -766,18 +1154,53 @@ var file_scmj_proto_rawDesc = []byte{
 	0x09, 0x73, 0x65, 0x61, 0x74, 0x49, 0x6e, 0x64, 0x65, 0x78, 0x12, 0x33, 0x0a, 0x06, 0x70, 0x6c,
 	0x61, 0x79, 0x65, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x70, 0x72, 0x6f,
 	0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x70, 0x6c, 0x61, 0x79,
-	0x65, 0x72, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x06, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x2a,
-	0x7e, 0x0a, 0x07, 0x50, 0x52, 0x4f, 0x54, 0x4f, 0x49, 0x44, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x4d,
-	0x50, 0x54, 0x59, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x43, 0x53, 0x5f, 0x4c, 0x4f, 0x47, 0x49,
-	0x4e, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x53, 0x43, 0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x10,
-	0x02, 0x12, 0x13, 0x0a, 0x0f, 0x43, 0x53, 0x5f, 0x43, 0x52, 0x45, 0x41, 0x54, 0x45, 0x5f, 0x54,
-	0x41, 0x42, 0x4c, 0x45, 0x10, 0x03, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x43, 0x5f, 0x54, 0x41, 0x42,
-	0x4c, 0x45, 0x5f, 0x49, 0x4e, 0x46, 0x4f, 0x10, 0x04, 0x12, 0x11, 0x0a, 0x0d, 0x43, 0x53, 0x5f,
-	0x4a, 0x4f, 0x49, 0x4e, 0x5f, 0x54, 0x41, 0x42, 0x4c, 0x45, 0x10, 0x05, 0x12, 0x11, 0x0a, 0x0d,
-	0x53, 0x43, 0x5f, 0x4a, 0x4f, 0x49, 0x4e, 0x5f, 0x54, 0x41, 0x42, 0x4c, 0x45, 0x10, 0x06, 0x2a,
-	0x1f, 0x0a, 0x09, 0x50, 0x4c, 0x41, 0x59, 0x5f, 0x4d, 0x4f, 0x44, 0x45, 0x12, 0x08, 0x0a, 0x04,
-	0x58, 0x4c, 0x43, 0x48, 0x10, 0x00, 0x12, 0x08, 0x0a, 0x04, 0x58, 0x5a, 0x44, 0x44, 0x10, 0x01,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x65, 0x72, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x06, 0x70, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x22,
+	0x2c, 0x0a, 0x0d, 0x70, 0x6c, 0x79, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x5f, 0x64, 0x61, 0x74, 0x61,
+	0x12, 0x1b, 0x0a, 0x09, 0x68, 0x61, 0x6e, 0x64, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x18, 0x01, 0x20,
+	0x03, 0x28, 0x05, 0x52, 0x08, 0x68, 0x61, 0x6e, 0x64, 0x43, 0x61, 0x72, 0x64, 0x22, 0x3b, 0x0a,
+	0x0f, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x5f, 0x64, 0x61, 0x74, 0x61,
+	0x12, 0x14, 0x0a, 0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52,
+	0x05, 0x74, 0x6f, 0x74, 0x61, 0x6c, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x65, 0x66, 0x74, 0x18, 0x02,
+	0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x6c, 0x65, 0x66, 0x74, 0x22, 0x7c, 0x0a, 0x0c, 0x73, 0x63,
+	0x5f, 0x63, 0x61, 0x72, 0x64, 0x5f, 0x69, 0x6e, 0x66, 0x6f, 0x12, 0x32, 0x0a, 0x08, 0x70, 0x6c,
+	0x79, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x70, 0x6c, 0x79, 0x5f, 0x63, 0x61, 0x72, 0x64,
+	0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x07, 0x70, 0x6c, 0x79, 0x43, 0x61, 0x72, 0x64, 0x12, 0x38,
+	0x0a, 0x0a, 0x74, 0x61, 0x62, 0x6c, 0x65, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x18, 0x02, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x19, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x63, 0x6f, 0x6c, 0x2e, 0x74, 0x61,
+	0x62, 0x6c, 0x65, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x5f, 0x64, 0x61, 0x74, 0x61, 0x52, 0x09, 0x74,
+	0x61, 0x62, 0x6c, 0x65, 0x43, 0x61, 0x72, 0x64, 0x22, 0x31, 0x0a, 0x12, 0x73, 0x63, 0x5f, 0x67,
+	0x61, 0x6d, 0x65, 0x5f, 0x74, 0x75, 0x72, 0x6e, 0x5f, 0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x1b,
+	0x0a, 0x09, 0x64, 0x69, 0x65, 0x5f, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x05, 0x52, 0x08, 0x64, 0x69, 0x65, 0x50, 0x6f, 0x69, 0x6e, 0x74, 0x22, 0x34, 0x0a, 0x0c, 0x73,
+	0x63, 0x5f, 0x64, 0x72, 0x61, 0x77, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x70,
+	0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03, 0x70, 0x69, 0x64, 0x12, 0x12, 0x0a,
+	0x04, 0x63, 0x61, 0x72, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x61, 0x72,
+	0x64, 0x22, 0x37, 0x0a, 0x0f, 0x63, 0x73, 0x5f, 0x64, 0x69, 0x73, 0x63, 0x61, 0x72, 0x64, 0x5f,
+	0x63, 0x61, 0x72, 0x64, 0x12, 0x12, 0x0a, 0x04, 0x63, 0x61, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01,
+	0x28, 0x05, 0x52, 0x04, 0x63, 0x61, 0x72, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x6f, 0x73, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x05, 0x52, 0x03, 0x70, 0x6f, 0x73, 0x22, 0x37, 0x0a, 0x0f, 0x73, 0x63,
+	0x5f, 0x64, 0x69, 0x73, 0x63, 0x61, 0x72, 0x64, 0x5f, 0x63, 0x61, 0x72, 0x64, 0x12, 0x12, 0x0a,
+	0x04, 0x63, 0x61, 0x72, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x05, 0x52, 0x04, 0x63, 0x61, 0x72,
+	0x64, 0x12, 0x10, 0x0a, 0x03, 0x70, 0x69, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x04, 0x52, 0x03,
+	0x70, 0x69, 0x64, 0x2a, 0xe4, 0x01, 0x0a, 0x07, 0x50, 0x52, 0x4f, 0x54, 0x4f, 0x49, 0x44, 0x12,
+	0x09, 0x0a, 0x05, 0x45, 0x4d, 0x50, 0x54, 0x59, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x43, 0x53,
+	0x5f, 0x4c, 0x4f, 0x47, 0x49, 0x4e, 0x10, 0x01, 0x12, 0x0c, 0x0a, 0x08, 0x53, 0x43, 0x5f, 0x4c,
+	0x4f, 0x47, 0x49, 0x4e, 0x10, 0x02, 0x12, 0x13, 0x0a, 0x0f, 0x43, 0x53, 0x5f, 0x43, 0x52, 0x45,
+	0x41, 0x54, 0x45, 0x5f, 0x54, 0x41, 0x42, 0x4c, 0x45, 0x10, 0x03, 0x12, 0x11, 0x0a, 0x0d, 0x53,
+	0x43, 0x5f, 0x54, 0x41, 0x42, 0x4c, 0x45, 0x5f, 0x49, 0x4e, 0x46, 0x4f, 0x10, 0x04, 0x12, 0x11,
+	0x0a, 0x0d, 0x43, 0x53, 0x5f, 0x4a, 0x4f, 0x49, 0x4e, 0x5f, 0x54, 0x41, 0x42, 0x4c, 0x45, 0x10,
+	0x05, 0x12, 0x11, 0x0a, 0x0d, 0x53, 0x43, 0x5f, 0x4a, 0x4f, 0x49, 0x4e, 0x5f, 0x54, 0x41, 0x42,
+	0x4c, 0x45, 0x10, 0x06, 0x12, 0x10, 0x0a, 0x0c, 0x53, 0x43, 0x5f, 0x43, 0x41, 0x52, 0x44, 0x5f,
+	0x49, 0x4e, 0x46, 0x4f, 0x10, 0x07, 0x12, 0x16, 0x0a, 0x12, 0x53, 0x43, 0x5f, 0x47, 0x41, 0x4d,
+	0x45, 0x5f, 0x54, 0x55, 0x52, 0x4e, 0x5f, 0x53, 0x54, 0x41, 0x52, 0x54, 0x10, 0x08, 0x12, 0x10,
+	0x0a, 0x0c, 0x53, 0x43, 0x5f, 0x44, 0x52, 0x41, 0x57, 0x5f, 0x43, 0x41, 0x52, 0x44, 0x10, 0x09,
+	0x12, 0x13, 0x0a, 0x0f, 0x43, 0x53, 0x5f, 0x44, 0x49, 0x53, 0x43, 0x41, 0x52, 0x44, 0x5f, 0x43,
+	0x41, 0x52, 0x44, 0x10, 0x0a, 0x12, 0x13, 0x0a, 0x0f, 0x53, 0x43, 0x5f, 0x44, 0x49, 0x53, 0x43,
+	0x41, 0x52, 0x44, 0x5f, 0x43, 0x41, 0x52, 0x44, 0x10, 0x0b, 0x2a, 0x1f, 0x0a, 0x09, 0x50, 0x4c,
+	0x41, 0x59, 0x5f, 0x4d, 0x4f, 0x44, 0x45, 0x12, 0x08, 0x0a, 0x04, 0x58, 0x4c, 0x43, 0x48, 0x10,
+	0x00, 0x12, 0x08, 0x0a, 0x04, 0x58, 0x5a, 0x44, 0x44, 0x10, 0x01, 0x62, 0x06, 0x70, 0x72, 0x6f,
+	0x74, 0x6f, 0x33,
 }
 
 var (
@@ -793,29 +1216,38 @@ func file_scmj_proto_rawDescGZIP() []byte {
 }
 
 var file_scmj_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_scmj_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_scmj_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_scmj_proto_goTypes = []interface{}{
 	(PROTOID)(0),              // 0: protocol.PROTOID
 	(PLAY_MODE)(0),            // 1: protocol.PLAY_MODE
 	(*CsLogin)(nil),           // 2: protocol.cs_login
 	(*ScLogin)(nil),           // 3: protocol.sc_login
-	(*ScmjRule)(nil),          // 4: protocol.scmj_rule
+	(*ScmjData)(nil),          // 4: protocol.scmj_data
 	(*CsCreateScmjTable)(nil), // 5: protocol.cs_create_scmj_table
 	(*TablePlayerData)(nil),   // 6: protocol.table_player_data
 	(*ScScmjTableInfo)(nil),   // 7: protocol.sc_scmj_table_info
 	(*CsJoinTable)(nil),       // 8: protocol.cs_join_table
 	(*ScJoinTable)(nil),       // 9: protocol.sc_join_table
+	(*PlyCardData)(nil),       // 10: protocol.ply_card_data
+	(*TableCardData)(nil),     // 11: protocol.table_card_data
+	(*ScCardInfo)(nil),        // 12: protocol.sc_card_info
+	(*ScGameTurnStart)(nil),   // 13: protocol.sc_game_turn_start
+	(*ScDrawCard)(nil),        // 14: protocol.sc_draw_card
+	(*CsDiscardCard)(nil),     // 15: protocol.cs_discard_card
+	(*ScDiscardCard)(nil),     // 16: protocol.sc_discard_card
 }
 var file_scmj_proto_depIdxs = []int32{
-	4, // 0: protocol.cs_create_scmj_table.rule:type_name -> protocol.scmj_rule
-	4, // 1: protocol.sc_scmj_table_info.rule:type_name -> protocol.scmj_rule
-	6, // 2: protocol.sc_scmj_table_info.players:type_name -> protocol.table_player_data
-	6, // 3: protocol.sc_join_table.player:type_name -> protocol.table_player_data
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	4,  // 0: protocol.cs_create_scmj_table.data:type_name -> protocol.scmj_data
+	4,  // 1: protocol.sc_scmj_table_info.data:type_name -> protocol.scmj_data
+	6,  // 2: protocol.sc_scmj_table_info.players:type_name -> protocol.table_player_data
+	6,  // 3: protocol.sc_join_table.player:type_name -> protocol.table_player_data
+	10, // 4: protocol.sc_card_info.ply_card:type_name -> protocol.ply_card_data
+	11, // 5: protocol.sc_card_info.table_card:type_name -> protocol.table_card_data
+	6,  // [6:6] is the sub-list for method output_type
+	6,  // [6:6] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_scmj_proto_init() }
@@ -849,7 +1281,7 @@ func file_scmj_proto_init() {
 			}
 		}
 		file_scmj_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*ScmjRule); i {
+			switch v := v.(*ScmjData); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -920,6 +1352,90 @@ func file_scmj_proto_init() {
 				return nil
 			}
 		}
+		file_scmj_proto_msgTypes[8].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PlyCardData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*TableCardData); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScCardInfo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScGameTurnStart); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScDrawCard); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CsDiscardCard); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_scmj_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*ScDiscardCard); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -927,7 +1443,7 @@ func file_scmj_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_scmj_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
