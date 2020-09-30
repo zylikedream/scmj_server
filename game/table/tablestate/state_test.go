@@ -7,7 +7,7 @@ import (
 )
 
 func TestStateFunc(t *testing.T) {
-	st := &state{}
+	st := &State{}
 	if err := setEnter(t, st, testFunc); err != nil {
 		t.Errorf("set func failed, err=%s", err)
 	}
@@ -16,7 +16,7 @@ func TestStateFunc(t *testing.T) {
 	}
 }
 
-func setEnter(t *testing.T, st *state, f interface{}) error {
+func setEnter(t *testing.T, st *State, f interface{}) error {
 	ftype := reflect.TypeOf(f)
 	if ftype.Kind() != reflect.Func {
 		return fmt.Errorf("need a func")

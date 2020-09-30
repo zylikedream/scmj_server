@@ -132,8 +132,15 @@ func (p *PlayerCard) ExposedKong(c int) error {
 		return err
 	}
 	p.KongCards[c] = struct{}{}
-	delete(p.KongCards, c)
+	delete(p.PongCards, c)
 	return nil
+}
+
+func (p *PlayerCard) IsPonged(c int) bool {
+	if _, ok := p.PongCards[c]; ok {
+		return true
+	}
+	return false
 }
 
 /*
@@ -166,11 +173,7 @@ func (p *PlayerCard) IsTingCard(c int) bool {
 }
 
 func (p *PlayerCard) GetCardTotalCount() int {
-	var totalCount = 0
-	for _, count := range p.HandCardMap {
-		totalCount += count
-	}
-	return totalCount
+	return p.CardCount
 }
 
 func (p *PlayerCard) GetCardArray() []int {

@@ -10,7 +10,6 @@ const (
 	EVENT_JOIN       = "event_join"
 	EVENT_GAME_START = "event_game_start"
 	EVENT_DRAW_CARD  = "event_draw_card"
-	EVENT_WAIT_PONG  = "event_wait_pong"
 )
 
 type event struct {

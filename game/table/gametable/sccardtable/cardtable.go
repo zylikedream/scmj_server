@@ -84,30 +84,16 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 
 func (s *ScCardTable) initStateMachine() {
 	s.stateMachine = tablestate.New()
-	s.stateMachine.InitalState(TABLE_STATE_INIT)
-
 	s.stateMachine.State(TABLE_STATE_DRAW).Enter(s.enterDrawCard)
-	s.stateMachine.State(TABLE_STATE_WAIT_WIN).Enter(s.enterWaitWin)
-	s.stateMachine.State(TABLE_STATE_WAIT_KONG)
-	s.stateMachine.State(TABLE_STATE_WAIT_PONG)
-
-	s.stateMachine.Event(STATE_EVENT_DRAW).To(TABLE_STATE_DRAW).From(TABLE_STATE_INIT)
-	s.stateMachine.Event(STATE_EVENT_DISCARD).To(TABLE_STATE_WAIT_WIN).From(TABLE_STATE_DRAW)
-
-	s.stateMachine.Event(STATE_EVENT_PASS).To(TABLE_STATE_WAIT_KONG).From(TABLE_STATE_WAIT_WIN)
-	s.stateMachine.Event(STATE_EVENT_PASS).To(TABLE_STATE_WAIT_PONG).From(TABLE_STATE_WAIT_KONG)
-	s.stateMachine.Event(STATE_EVENT_PASS).To(TABLE_STATE_DRAW).From(TABLE_STATE_WAIT_PONG)
-
-	s.stateMachine.Event(STATE_EVENT_WIN).To(TABLE_STATE_DRAW).From(TABLE_STATE_WAIT_WIN)
-	s.stateMachine.Event(STATE_EVENT_KONG).To(TABLE_STATE_DRAW).From(TABLE_STATE_WAIT_KONG)
-	s.stateMachine.Event(STATE_EVENT_PONG).To(TABLE_STATE_DRAW).From(TABLE_STATE_WAIT_PONG)
+	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
+	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE_KONG).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
+	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE_PONG).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
 }
 
 func (s *ScCardTable) initEvent() {
 	s.event = NewScTableEvent()
 	s.event.On(EVENT_JOIN, s.onJoinEvent)
 	s.event.On(EVENT_GAME_START, s.onGameStart)
-	s.event.On(EVENT_WAIT_PONG, s.waitPong)
 }
 
 func (s *ScCardTable) GetID() uint32 {
@@ -139,7 +125,7 @@ func (s *ScCardTable) onGameStart() error {
 		return err
 	}
 	// 切换到抽牌状态
-	if err := s.TriggerEvent(STATE_EVENT_DRAW); err != nil {
+	if err := s.stateMachine.Next(TABLE_STATE_DRAW); err != nil {
 		return err
 	}
 
@@ -322,21 +308,54 @@ func (s *ScCardTable) DiscardCard(pid player.PID, card int) error {
 		Pid:  pid,
 	}
 	s.broadCastCommon(protocol.PROTOID_SC_DISCARD_CARD, msg)
-	if err := s.TriggerEvent(STATE_EVENT_DISCARD, pid, card); err != nil {
+	if err := s.stateMachine.Next(TABLE_STATE_WAIT_OPERATE, pid, card); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *ScCardTable) TriggerEvent(event string, args ...interface{}) error {
-	if err := s.stateMachine.Trigger(event, args...); err != nil {
-		zlog.Errorf("trigger event %s failed, curState=%s", event, s.stateMachine.GetCurStateName())
-		return err
+func (s *ScCardTable) FillPlyOperateAfterDraw(ply *tableplayer.TablePlayer, drawc int) {
+	var ops []int
+	if s.winRule.CanWin(ply.PlyCard.GetCardArray()) {
+		ops = append(ops, gamedefine.OPERATE_WIN)
 	}
-	return nil
+	if ply.PlyCard.IsPonged(drawc) {
+		ops = append(ops, gamedefine.OPERATE_KONG)
+	} else if ply.PlyCard.GetCardNum(drawc) == 4 {
+		ops = append(ops, gamedefine.OPERATE_KONG)
+	}
+	ops = append(ops, gamedefine.OPERATE_DISCARD)
+	s.AddPlyOperate(ply, ops...)
 }
 
-func (s *ScCardTable) waitPong(pid int, card int) error {
-	return s.TriggerEvent(STATE_EVENT_PASS, pid, card)
+func (s *ScCardTable) FillPlyOperateWithCard(ply *tableplayer.TablePlayer, pid player.PID, c int) {
+	var ops []int
+	if ply.PlyCard.IsTingCard(c) {
+		ops = append(ops, gamedefine.OPERATE_WIN)
+	}
+	if ply.PlyCard.GetCardNum(c) >= 4 {
+
+	}
+	if ply.PlyCard.GetCardNum(c) >= 3 {
+		ops = append(ops, gamedefine.OPERATE_KONG)
+		ops = append(ops, gamedefine.OPERATE_PONG)
+	} else if ply.PlyCard.GetCardNum(c) >= 2 {
+		ops = append(ops, gamedefine.OPERATE_PONG)
+	}
+	s.AddPlyOperate(ply, ops...)
+}
+
+func (s *ScCardTable) AddPlyOperate(ply *tableplayer.TablePlayer, ops ...int) {
+	if len(ops) == 0 {
+		return
+	}
+	for _, op := range ops {
+		ply.AddOperate(op)
+	}
+}
+
+func (s *ScCardTable) NotifyPlyOperate(ply *tableplayer.TablePlayer) error {
+	// todo
+	return nil
 }

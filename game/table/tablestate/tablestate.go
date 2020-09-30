@@ -10,13 +10,11 @@ import (
 type StateMachine struct {
 	curState *State
 	states   map[string]*State
-	events   map[string]*Event
 }
 
 func New() *StateMachine {
 	return &StateMachine{
 		states: make(map[string]*State),
-		events: make(map[string]*Event),
 	}
 }
 
@@ -25,6 +23,10 @@ func (sm *StateMachine) GetCurStateName() string {
 		return ""
 	}
 	return sm.curState.Name
+}
+
+func (sm *StateMachine) GetCurState() *State {
+	return sm.curState
 }
 
 func (sm *StateMachine) InitalState(name string, value ...interface{}) error {
@@ -42,84 +44,29 @@ func (sm *StateMachine) State(name string) *State {
 	return state
 }
 
-// Event define an event
-func (sm *StateMachine) Event(name string) *Event {
-	event := &Event{Name: name}
-	sm.events[name] = event
-	return event
-}
-
 // Trigger trigger an event
-func (sm *StateMachine) Trigger(name string, value ...interface{}) error {
-	stateWas := sm.curState.Name
-	if event := sm.events[name]; event != nil {
-		var matchedTransitions []*EventTransition
-		for _, transition := range event.transitions {
-			var validFrom = len(transition.froms) == 0
-			if len(transition.froms) > 0 {
-				for _, from := range transition.froms {
-					if from == stateWas {
-						validFrom = true
-					}
-				}
-			}
-
-			if validFrom {
-				matchedTransitions = append(matchedTransitions, transition)
-			}
-		}
-
-		if len(matchedTransitions) == 1 {
-			transition := matchedTransitions[0]
-
-			// State: exit
-			if state, ok := sm.states[stateWas]; ok {
-				if err := state.onExit(); err != nil {
-					return err
-				}
-			}
-
-			if state, ok := sm.states[transition.to]; ok {
-				if err := state.onEnter(value...); err != nil {
-					return err
-				}
-			}
-			return nil
+func (sm *StateMachine) Next(name string, value ...interface{}) error {
+	// State: exit
+	if sm.curState != nil {
+		if err := sm.curState.onExit(); err != nil {
+			return fmt.Errorf("onExit state %s err, err=%s", sm.curState.Name, err)
 		}
 	}
-	return fmt.Errorf("failed to perform event %s from state %s", name, stateWas)
-}
 
-// Event contains Event information, including transition hooks
-type Event struct {
-	Name        string
-	transitions []*EventTransition
-}
-
-// To define EventTransition of go to a state
-func (event *Event) To(name string) *EventTransition {
-	transition := &EventTransition{to: name}
-	event.transitions = append(event.transitions, transition)
-	return transition
-}
-
-// EventTransition hold event's to/froms states, also including befores, afters hooks
-type EventTransition struct {
-	to    string
-	froms []string
-}
-
-// From used to define from states
-func (transition *EventTransition) From(states ...string) *EventTransition {
-	transition.froms = states
-	return transition
+	if state, ok := sm.states[name]; ok {
+		if err := state.onEnter(value...); err != nil {
+			return fmt.Errorf("onEnter state %s err, err=%s", name, err)
+		}
+	}
+	return nil
 }
 
 type stateFunc func(...interface{}) error
 type State struct {
-	onEnter stateFunc
-	onExit  func() error
-	Name    string
+	onEnter  stateFunc
+	onUpdate func() error
+	onExit   func() error
+	Name     string
 }
 
 func newState(name string) *State {
@@ -145,6 +92,11 @@ func (s *State) Enter(f interface{}) *State {
 
 func (s *State) Exit(f func() error) *State {
 	s.onExit = f
+	return s
+}
+
+func (s *State) Update(f func() error) *State {
+	s.onUpdate = f
 	return s
 }
 
