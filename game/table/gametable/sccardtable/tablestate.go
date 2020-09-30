@@ -2,6 +2,8 @@ package sccardtable
 
 import (
 	"zinx-mj/game/gamedefine"
+	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/game/table/tablestate"
 	"zinx-mj/player"
 )
 
@@ -13,31 +15,44 @@ const (
 	TABLE_STATE_WAIT_OPERATE_PONG = "state_wait_opearte_pong"
 )
 
-func (s *ScCardTable) enterDrawCard() error {
-	return s.drawCard(s.curPlayerIndex)
+type StateDraw struct {
+	tablestate.StateBase
 }
 
-func (s *ScCardTable) enterWaitOperate(pid player.PID, card int) error {
-	for _, ply := range s.players {
-		if ply.Pid == pid {
-			continue
-		}
-		s.FillPlyOperateWithCard(ply, pid, card)
+func NewStateDraw() *StateDraw {
+	return &StateDraw{}
+}
+
+func (sd *StateDraw) OnEnter(args ...interface{}) error {
+	sct := args[0].(*ScCardTable)
+	return sct.drawCard(sct.curPlayerIndex)
+}
+
+type StateWaitOperate struct {
+	tablestate.StateBase
+	curOpIndex int
+	curPlys    []*tableplayer.TablePlayer
+	ops        []int
+}
+
+func NewStateWaitOperate() *StateWaitOperate {
+	return &StateWaitOperate{
+		ops: []int{gamedefine.OPERATE_WIN, gamedefine.OPERATE_KONG, gamedefine.OPERATE_PONG},
 	}
-	return nil
 }
 
-func (s *ScCardTable) updateWaitOperate() error {
-	return s.stateMachine.Next(TABLE_STATE_WAIT_OPERATE_WIN)
-}
+func (swo *StateWaitOperate) OnEnter(args ...interface{}) error {
+	sct := args[0].(*ScCardTable)
+	pid := args[1].(player.PID)
+	card := args[2].(int)
+	swo.curOpIndex = 0
+	swo.curPlys = make([]*tableplayer.TablePlayer, 0)
 
-func (s *ScCardTable) enterWaitOperateSub(op int) error {
-	for _, ply := range s.players {
-		if ply.IsOperateValid(op) {
-			s.NotifyPlyOperate(ply)
+	for _, ply := range sct.players {
+		if ply.IsOperateValid(swo.ops[swo.curOpIndex]) {
+			swo.curPlys = append(swo.curPlys, ply)
 		}
 	}
-	return nil
 }
 
 func (s *ScCardTable) updateWaitOperateSub(op int, nextState string) error {
