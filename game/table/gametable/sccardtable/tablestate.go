@@ -1,10 +1,6 @@
 package sccardtable
 
-import (
-	"zinx-mj/player"
-
-	"github.com/jinzhu/gorm"
-)
+import "zinx-mj/player"
 
 const (
 	STATE_EVENT_DRAW    = "state_event_draw"
@@ -13,29 +9,28 @@ const (
 	STATE_EVENT_PONG    = "state_event_pong"
 	STATE_EVENT_KONG    = "state_event_kong"
 	STATE_EVENT_WIN     = "state_event_win"
-	STATE_EVENT_EMPTY   = "state_event_empty"
 )
 
 const (
-	TABLE_STATE_INIT      = "state_init"    // 摸牌
-	TABLE_STATE_DRAW      = "state_draw"    // 摸牌
-	TABLE_STATE_DISCARD   = "state_discard" // 出牌
-	TABLE_STATE_WAIT_WIN  = "state_discard" // 等待胡牌
-	TABLE_STATE_WAIT_KONG = "state_discard" // 等待杠牌
-	TABLE_STATE_WAIT_PONG = "state_discard" // 等待碰牌
+	TABLE_STATE_INIT      = "state_init"
+	TABLE_STATE_DRAW      = "state_draw"
+	TABLE_STATE_WAIT_WIN  = "state_discard"
+	TABLE_STATE_WAIT_KONG = "state_discard"
+	TABLE_STATE_WAIT_PONG = "state_discard"
 )
 
-type ParamWithCardAndTable struct {
-	t    *ScCardTable
-	card int
-	pid  player.PID
+func (s *ScCardTable) enterDrawCard() error {
+	return s.drawCard(s.curPlayerIndex)
 }
 
-func OnDrawEnter(t interface{}, tx *gorm.DB) error {
-	tb := t.(*ScCardTable)
-	return tb.drawCard(tb.curPlayerIndex)
-}
-
-func OnDiscardEnter(t interface{}, tx *gorm.DB) error {
+func (s *ScCardTable) enterWaitWin(pid player.PID, card int) error {
+	for _, ply := range s.players {
+		if ply.Pid == pid {
+			continue
+		}
+		if ply.PlyCard.IsTingCard(card) {
+			// todo 发送听牌操作
+		}
+	}
 	return nil
 }

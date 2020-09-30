@@ -19,12 +19,11 @@ import (
 	"zinx-mj/game/rule/ting"
 	"zinx-mj/game/rule/win"
 	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/game/table/tablestate"
 	"zinx-mj/mjerror"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 	"zinx-mj/util"
-
-	"github.com/qor/transition"
 
 	"github.com/aceld/zinx/zlog"
 
@@ -43,8 +42,7 @@ type ScCardTable struct {
 	curPlayerIndex int
 	event          *ScTableEvent
 	board          *boardcard.BoardCard
-	transition.Transition
-	stateMachine *transition.StateMachine
+	stateMachine   *tablestate.StateMachine
 
 	boardRule   irule.IBoard
 	chowRule    irule.IChow
@@ -85,19 +83,16 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 }
 
 func (s *ScCardTable) initStateMachine() {
-	s.stateMachine = transition.New(nil)
-	s.stateMachine.Initial(TABLE_STATE_INIT)
+	s.stateMachine = tablestate.New()
+	s.stateMachine.InitalState(TABLE_STATE_INIT)
 
-	s.stateMachine.State(TABLE_STATE_DRAW).Enter(OnDrawEnter)
-	s.stateMachine.State(TABLE_STATE_DISCARD)
-	s.stateMachine.State(TABLE_STATE_WAIT_WIN)
+	s.stateMachine.State(TABLE_STATE_DRAW).Enter(s.enterDrawCard)
+	s.stateMachine.State(TABLE_STATE_WAIT_WIN).Enter(s.enterWaitWin)
 	s.stateMachine.State(TABLE_STATE_WAIT_KONG)
 	s.stateMachine.State(TABLE_STATE_WAIT_PONG)
 
 	s.stateMachine.Event(STATE_EVENT_DRAW).To(TABLE_STATE_DRAW).From(TABLE_STATE_INIT)
-	s.stateMachine.Event(STATE_EVENT_DISCARD).To(TABLE_STATE_DISCARD).From(TABLE_STATE_DRAW)
-
-	s.stateMachine.Event(STATE_EVENT_EMPTY).To(TABLE_STATE_WAIT_WIN).From(TABLE_STATE_DISCARD)
+	s.stateMachine.Event(STATE_EVENT_DISCARD).To(TABLE_STATE_WAIT_WIN).From(TABLE_STATE_DRAW)
 
 	s.stateMachine.Event(STATE_EVENT_PASS).To(TABLE_STATE_WAIT_KONG).From(TABLE_STATE_WAIT_WIN)
 	s.stateMachine.Event(STATE_EVENT_PASS).To(TABLE_STATE_WAIT_PONG).From(TABLE_STATE_WAIT_KONG)
@@ -112,6 +107,7 @@ func (s *ScCardTable) initEvent() {
 	s.event = NewScTableEvent()
 	s.event.On(EVENT_JOIN, s.onJoinEvent)
 	s.event.On(EVENT_GAME_START, s.onGameStart)
+	s.event.On(EVENT_WAIT_PONG, s.waitPong)
 }
 
 func (s *ScCardTable) GetID() uint32 {
@@ -326,21 +322,21 @@ func (s *ScCardTable) DiscardCard(pid player.PID, card int) error {
 		Pid:  pid,
 	}
 	s.broadCastCommon(protocol.PROTOID_SC_DISCARD_CARD, msg)
-	if err := s.TriggerEvent(STATE_EVENT_DISCARD); err != nil {
+	if err := s.TriggerEvent(STATE_EVENT_DISCARD, pid, card); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (s *ScCardTable) TriggerEvent(event string) error {
-	if err := s.stateMachine.Trigger(event, s, nil); err != nil {
-		zlog.Errorf("trigger event %s failed, curState=%s", event, s.GetState())
+func (s *ScCardTable) TriggerEvent(event string, args ...interface{}) error {
+	if err := s.stateMachine.Trigger(event, args...); err != nil {
+		zlog.Errorf("trigger event %s failed, curState=%s", event, s.stateMachine.GetCurStateName())
 		return err
 	}
 	return nil
 }
 
-func (s *ScCardTable) CheckPongPlayer(card int, pid int) *tableplayer.TablePlayer {
-	return nil
+func (s *ScCardTable) waitPong(pid int, card int) error {
+	return s.TriggerEvent(STATE_EVENT_PASS, pid, card)
 }
