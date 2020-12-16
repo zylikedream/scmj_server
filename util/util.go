@@ -9,7 +9,7 @@ import (
 	"zinx-mj/player"
 	"zinx-mj/player/playermgr"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/aceld/zinx/ziface"
 )

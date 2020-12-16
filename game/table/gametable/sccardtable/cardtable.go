@@ -29,7 +29,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type ScCardTable struct {
@@ -84,16 +84,12 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 
 func (s *ScCardTable) initStateMachine() {
 	s.stateMachine = tablestate.New()
-	s.stateMachine.State(TABLE_STATE_DRAW).Enter(s.enterDrawCard)
-	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
-	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE_KONG).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
-	s.stateMachine.State(TABLE_STATE_WAIT_OPERATE_PONG).Enter(s.enterWaitOperate).Update(s.updateWaitOperate)
 }
 
 func (s *ScCardTable) initEvent() {
 	s.event = NewScTableEvent()
-	s.event.On(EVENT_JOIN, s.onJoinEvent)
-	s.event.On(EVENT_GAME_START, s.onGameStart)
+	_ = s.event.On(EVENT_JOIN, s.onJoinEvent)
+	_ = s.event.On(EVENT_GAME_START, s.onGameStart)
 }
 
 func (s *ScCardTable) GetID() uint32 {
@@ -125,7 +121,7 @@ func (s *ScCardTable) onGameStart() error {
 		return err
 	}
 	// 切换到抽牌状态
-	if err := s.stateMachine.Next(TABLE_STATE_DRAW); err != nil {
+	if err := s.stateMachine.Next(tablestate.TABLE_STATE_DRAW); err != nil {
 		return err
 	}
 
@@ -206,7 +202,9 @@ func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 	}
 	msg.Player = s.PackPlayerData(ply)
 	msg.SeatIndex = int32(len(s.players)) - 1
-	s.broadCastCommon(protocol.PROTOID_SC_JOIN_TABLE, msg)
+	if err := s.broadCastCommon(protocol.PROTOID_SC_JOIN_TABLE, msg); err != nil {
+		return err
+	}
 
 	// 人满了就开游戏
 	if s.IsFull() {
@@ -245,7 +243,10 @@ func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
 		} else {
 			msg.Card = -1
 		}
-		util.SendMsg(ply.Pid, protocol.PROTOID_SC_DRAW_CARD, msg)
+		if err := util.SendMsg(ply.Pid, protocol.PROTOID_SC_DRAW_CARD, msg); err != nil {
+			zlog.Errorf("send msg error:%s", err)
+			return
+		}
 	}
 }
 
@@ -307,8 +308,10 @@ func (s *ScCardTable) DiscardCard(pid player.PID, card int) error {
 		Card: int32(card),
 		Pid:  pid,
 	}
-	s.broadCastCommon(protocol.PROTOID_SC_DISCARD_CARD, msg)
-	if err := s.stateMachine.Next(TABLE_STATE_WAIT_OPERATE, pid, card); err != nil {
+	if err := s.broadCastCommon(protocol.PROTOID_SC_DISCARD_CARD, msg); err != nil {
+		return err
+	}
+	if err := s.stateMachine.Next(tablestate.TABLE_STATE_WAIT_OPERATE, pid, card); err != nil {
 		return err
 	}
 
@@ -334,13 +337,10 @@ func (s *ScCardTable) FillPlyOperateWithCard(ply *tableplayer.TablePlayer, pid p
 	if ply.PlyCard.IsTingCard(c) {
 		ops = append(ops, gamedefine.OPERATE_WIN)
 	}
-	if ply.PlyCard.GetCardNum(c) >= 4 {
 
-	}
-	if ply.PlyCard.GetCardNum(c) >= 3 {
-		ops = append(ops, gamedefine.OPERATE_KONG)
-		ops = append(ops, gamedefine.OPERATE_PONG)
-	} else if ply.PlyCard.GetCardNum(c) >= 2 {
+	if ply.PlyCard.GetCardNum(c) == 3 {
+		ops = append(ops, gamedefine.OPERATE_KONG, gamedefine.OPERATE_PONG)
+	} else if ply.PlyCard.GetCardNum(c) == 2 {
 		ops = append(ops, gamedefine.OPERATE_PONG)
 	}
 	s.AddPlyOperate(ply, ops...)

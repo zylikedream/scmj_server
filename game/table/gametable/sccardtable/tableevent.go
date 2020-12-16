@@ -3,13 +3,13 @@ package sccardtable
 import (
 	"sync"
 
+	"github.com/aceld/zinx/zlog"
 	"github.com/sadlil/go-trigger"
 )
 
 const (
 	EVENT_JOIN       = "event_join"
 	EVENT_GAME_START = "event_game_start"
-	EVENT_DRAW_CARD  = "event_draw_card"
 )
 
 type event struct {
@@ -19,9 +19,8 @@ type event struct {
 
 type ScTableEvent struct {
 	trigger.Trigger
-	events    []event
-	eventsMap []event
-	mu        sync.Mutex
+	events []event
+	mu     sync.Mutex
 }
 
 func NewScTableEvent() *ScTableEvent {
@@ -40,7 +39,10 @@ func (s *ScTableEvent) FireAll() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, eve := range s.events {
-		s.FireBackground(eve.name, eve.params...)
+		_, err := s.FireBackground(eve.name, eve.params...)
+		if err != nil {
+			zlog.Errorf("fire error:%s", err)
+		}
 	}
 	s.events = []event{}
 }

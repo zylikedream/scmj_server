@@ -4,6 +4,14 @@ import (
 	"fmt"
 )
 
+const (
+	TABLE_STATE_DRAW              = "state_draw"
+	TABLE_STATE_WAIT_OPERATE      = "state_wait_opearte"
+	TABLE_STATE_WAIT_OPERATE_WIN  = "state_wait_opearte_win"
+	TABLE_STATE_WAIT_OPERATE_KONG = "state_wait_opearte_kong"
+	TABLE_STATE_WAIT_OPERATE_PONG = "state_wait_opearte_pong"
+)
+
 type StateMachine struct {
 	curState IState
 	states   map[string]IState
@@ -47,11 +55,10 @@ func (sm *StateMachine) Next(name string, value ...interface{}) error {
 type IState interface {
 	GetName() string
 	OnEnter(args ...interface{}) error
-	OnUpdate() error
+	OnUpdate(args ...interface{}) error
 	OnExit() error
 }
 
-type stateFunc func(...interface{}) error
 type StateBase struct {
 	name string
 }
@@ -64,7 +71,7 @@ func (s *StateBase) OnEnter(args ...interface{}) error {
 	return nil
 }
 
-func (s *StateBase) OnUpdate() error {
+func (s *StateBase) OnUpdate(args ...interface{}) error {
 	return nil
 }
 

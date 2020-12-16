@@ -3,9 +3,6 @@ package mongodb
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"sync"
 	"testing"
@@ -13,6 +10,10 @@ import (
 	"zinx-mj/database"
 	"zinx-mj/player"
 	"zinx-mj/player/playermgr"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func Test_mongo(t *testing.T) {
@@ -42,7 +43,6 @@ func Test_mongo(t *testing.T) {
 }
 
 func TestMongoDB_LoadPlayer(t *testing.T) {
-	database.Init()
 	if _, err := database.GetDB().LoadPlayer("11111111"); err != nil {
 		fmt.Printf("load failed, err=%s\n", err)
 	}

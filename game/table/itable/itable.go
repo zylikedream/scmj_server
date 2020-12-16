@@ -6,7 +6,7 @@ import (
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/player"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type ITable interface {

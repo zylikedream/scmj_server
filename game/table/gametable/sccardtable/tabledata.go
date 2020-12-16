@@ -4,7 +4,7 @@ import (
 	"errors"
 	"zinx-mj/network/protocol"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type ScTableData struct {
