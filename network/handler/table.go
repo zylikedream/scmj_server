@@ -11,7 +11,7 @@ import (
 	"github.com/aceld/zinx/ziface"
 	"github.com/aceld/zinx/zlog"
 	"github.com/aceld/zinx/znet"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type CreateTable struct {
@@ -63,7 +63,7 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	data := request.GetData()
 	req := &protocol.CsJoinTable{}
 	if err := proto.Unmarshal(data, req); err != nil {
-		zlog.Errorf("unpack join table proto failed, err=%w\n", err)
+		zlog.Errorf("unpack join table proto failed, err=%s\n", err)
 		return
 	}
 	tb := tablemgr.GetTable(req.TableId)
@@ -94,29 +94,4 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 		return
 	}
 
-}
-
-type DiscardCard struct {
-	znet.BaseRouter
-}
-
-func (c *DiscardCard) Handle(request ziface.IRequest) {
-	data := request.GetData()
-	req := &protocol.CsDiscardCard{}
-	if err := proto.Unmarshal(data, req); err != nil {
-		zlog.Errorf("unpack join table proto failed, err=%w\n", err)
-		return
-	}
-
-	pid := util.GetConnPid(request.GetConnection())
-	ply := playermgr.GetPlayerByPid(pid)
-	if ply == nil {
-		return
-	}
-
-	tb := tablemgr.GetTable(ply.TableID)
-	if err := tb.DiscardCard(pid, int(req.Card)); err != nil {
-		zlog.Errorf("discard failed, pid=%d, card=%d, err=%s", pid, req.Card, err)
-		return
-	}
 }

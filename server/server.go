@@ -16,7 +16,7 @@ const serverFrame = 20
 
 type Server struct {
 	core      ziface.IServer
-	frameTick <-chan time.Time
+	frameTick *time.Ticker
 }
 
 func NewServer() *Server {
@@ -27,7 +27,7 @@ func (s *Server) initRoute() error {
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_LOGIN), &handler.Login{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.CreateTable{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_JOIN_TABLE), &handler.JoinTable{})
-	s.core.AddRouter(uint32(protocol.PROTOID_CS_DISCARD_CARD), &handler.DiscardCard{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_PLAYER_OPERATE), &handler.PlayerOperate{})
 	return nil
 }
 
@@ -44,7 +44,7 @@ func (s *Server) Init() error {
 		return err
 	}
 
-	s.frameTick = time.Tick(1000 * time.Millisecond / serverFrame)
+	s.frameTick = time.NewTicker(1000 * time.Millisecond / serverFrame)
 	return nil
 }
 
@@ -55,8 +55,7 @@ func (s *Server) Run() {
 
 func (s *Server) FixUpdate() {
 	cur := time.Now()
-	for {
-		<-s.frameTick
+	for range s.frameTick.C {
 		delta := time.Since(cur)
 		cur = time.Now()
 

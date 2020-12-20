@@ -1,7 +1,7 @@
 package draw
 
 import (
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -13,7 +13,7 @@ func NewGeneralDraw() irule.IDraw {
 	return generalDraw{}
 }
 
-func (g generalDraw) Draw(pc *playercard.PlayerCard, card int) error {
+func (g generalDraw) Draw(pc *handcard.HandCard, card int) error {
 	if err := pc.Draw(card); err != nil {
 		return err
 	}

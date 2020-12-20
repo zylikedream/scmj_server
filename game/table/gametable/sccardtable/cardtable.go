@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"time"
 	"zinx-mj/game/card/boardcard"
-	"zinx-mj/game/card/playercard"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/board"
 	"zinx-mj/game/rule/chow"
@@ -18,6 +17,7 @@ import (
 	"zinx-mj/game/rule/shuffle"
 	"zinx-mj/game/rule/ting"
 	"zinx-mj/game/rule/win"
+	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/game/table/tablestate"
 	"zinx-mj/mjerror"
@@ -83,7 +83,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 }
 
 func (s *ScCardTable) initStateMachine() {
-	s.stateMachine = tablestate.New()
+	s.stateMachine = tablestate.New(s)
 }
 
 func (s *ScCardTable) initEvent() {
@@ -96,20 +96,18 @@ func (s *ScCardTable) GetID() uint32 {
 	return s.id
 }
 
-func (s *ScCardTable) Operate(operate irule.IOperate) error {
-	panic("implement me")
-}
-
 func (s *ScCardTable) onGameStart() error {
-	// 初始化庄家
+	// 初始化玩家手牌
 	s.initializeHandCard()
 	s.turn++ // 增加游戏局数
 
+	// 初始化庄家
 	s.curPlayerIndex = rand.Intn(s.data.MaxPlayer) // 随机庄家
 	// 稍后广播玩家手牌
 	msg := &protocol.ScGameTurnStart{}
 	// todo 抽象筛子点数rule
 	msg.DiePoint = rand.Int31n(6) + 1
+
 	// 广播游戏开始消息
 	if err := s.broadCastCommon(protocol.PROTOID_SC_GAME_TURN_START, msg); err != nil {
 		zlog.Errorf("broadCast game start failed, err=%s", err)
@@ -120,8 +118,8 @@ func (s *ScCardTable) onGameStart() error {
 		zlog.Errorf("broadcast card info failed, err=%s", err)
 		return err
 	}
-	// 切换到抽牌状态
-	if err := s.stateMachine.Next(tablestate.TABLE_STATE_DRAW); err != nil {
+	// 初始状态为抽牌状态
+	if err := s.stateMachine.SetInitState(tablestate.TABLE_STATE_DRAW); err != nil {
 		return err
 	}
 
@@ -138,7 +136,7 @@ func (s *ScCardTable) GetPlayer(pid player.PID) *tableplayer.TablePlayer {
 }
 
 func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
-	ply := tableplayer.NewTablePlayer(plyData)
+	ply := tableplayer.NewTablePlayer(plyData, s)
 	ply.AddIdentity(identity)
 	s.players = append(s.players, ply)
 
@@ -163,6 +161,7 @@ func (s *ScCardTable) GetTableNumber() uint32 {
 	return s.id
 }
 
+// 广播同样的消息给所有玩家
 func (s *ScCardTable) broadCastCommon(protoID protocol.PROTOID, msg proto.Message) error {
 	for _, ply := range s.players {
 		if err := util.SendMsg(ply.Pid, protoID, msg); err != nil {
@@ -219,7 +218,7 @@ func (s *ScCardTable) initializeHandCard() {
 	s.shuffleRule.Shuffle(s.board.Cards)
 
 	for i := 0; i < s.data.MaxPlayer; i++ {
-		s.players[i].PlyCard = playercard.New(s.board.Cards[:MAX_HAND_CARD_NUM], MAX_HAND_CARD_NUM)
+		s.players[i].InitHandCard(s.board.Cards[:MAX_HAND_CARD_NUM])
 		s.board.Cards = s.board.Cards[MAX_HAND_CARD_NUM:]
 	}
 }
@@ -250,9 +249,9 @@ func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
 	}
 }
 
-func (s *ScCardTable) GetPlayerCardArray(ply *tableplayer.TablePlayer, pid player.PID) []int {
+func (s *ScCardTable) GetHandCardArray(ply *tableplayer.TablePlayer, pid player.PID) []int {
 	// notice: cards必须是手牌的copy, 后面可能会修改
-	cards := ply.PlyCard.GetCardArray()
+	cards := ply.Hcard.GetCardArray()
 	if ply.Pid == pid {
 		return cards
 	}
@@ -270,12 +269,12 @@ func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
 	msg.TableCard.Left = int32(len(s.board.Cards))
 
 	for _, ply := range s.players {
-		cards := s.GetPlayerCardArray(ply, pid)
-		plyCards := &protocol.PlyCardData{}
+		cards := s.GetHandCardArray(ply, pid)
+		handCards := &protocol.HandCardData{}
 		for _, card := range cards {
-			plyCards.HandCard = append(plyCards.HandCard, int32(card))
+			handCards.Card = append(handCards.Card, int32(card))
 		}
-		msg.PlyCard = append(msg.PlyCard, plyCards)
+		msg.HandCard = append(msg.HandCard, handCards)
 	}
 
 	return msg
@@ -291,71 +290,51 @@ func (s *ScCardTable) drawCard(index int) error {
 	if err != nil {
 		return errors.WithStack(err)
 	}
-	if err = s.drawRule.Draw(ply.PlyCard, card); err != nil {
+	if err = s.drawRule.Draw(ply.Hcard, card); err != nil {
 		return errors.WithStack(err)
 	}
 	s.broadCastDrawCard(ply.Pid, card)
 	return nil
 }
 
-func (s *ScCardTable) DiscardCard(pid player.PID, card int) error {
-	ply := s.GetPlayer(pid)
-	err := s.discardRule.Discard(ply.PlyCard, card, gamedefine.CARD_SUIT_EMPTY)
-	if err != nil {
-		return errors.WithStack(err)
-	}
-	msg := &protocol.ScDiscardCard{
-		Card: int32(card),
-		Pid:  pid,
-	}
-	if err := s.broadCastCommon(protocol.PROTOID_SC_DISCARD_CARD, msg); err != nil {
-		return err
-	}
-	if err := s.stateMachine.Next(tablestate.TABLE_STATE_WAIT_OPERATE, pid, card); err != nil {
-		return err
-	}
-
+func (s *ScCardTable) NotifyPlyOperate(ply *tableplayer.TablePlayer) error {
+	// todo
 	return nil
 }
 
-func (s *ScCardTable) FillPlyOperateAfterDraw(ply *tableplayer.TablePlayer, drawc int) {
-	var ops []int
-	if s.winRule.CanWin(ply.PlyCard.GetCardArray()) {
-		ops = append(ops, gamedefine.OPERATE_WIN)
-	}
-	if ply.PlyCard.IsPonged(drawc) {
-		ops = append(ops, gamedefine.OPERATE_KONG)
-	} else if ply.PlyCard.GetCardNum(drawc) == 4 {
-		ops = append(ops, gamedefine.OPERATE_KONG)
-	}
-	ops = append(ops, gamedefine.OPERATE_DISCARD)
-	s.AddPlyOperate(ply, ops...)
+func (s *ScCardTable) GetPlayers() []*tableplayer.TablePlayer {
+	return s.players
 }
 
-func (s *ScCardTable) FillPlyOperateWithCard(ply *tableplayer.TablePlayer, pid player.PID, c int) {
-	var ops []int
-	if ply.PlyCard.IsTingCard(c) {
-		ops = append(ops, gamedefine.OPERATE_WIN)
-	}
-
-	if ply.PlyCard.GetCardNum(c) == 3 {
-		ops = append(ops, gamedefine.OPERATE_KONG, gamedefine.OPERATE_PONG)
-	} else if ply.PlyCard.GetCardNum(c) == 2 {
-		ops = append(ops, gamedefine.OPERATE_PONG)
-	}
-	s.AddPlyOperate(ply, ops...)
+func (s *ScCardTable) GetWinRule() irule.IWin {
+	return s.winRule
 }
 
-func (s *ScCardTable) AddPlyOperate(ply *tableplayer.TablePlayer, ops ...int) {
-	if len(ops) == 0 {
-		return
-	}
-	for _, op := range ops {
-		ply.AddOperate(op)
-	}
+func (s *ScCardTable) GetDiscardRule() irule.IDiscard {
+	return s.discardRule
 }
 
-func (s *ScCardTable) NotifyPlyOperate(ply *tableplayer.TablePlayer) error {
-	// todo
+func (s *ScCardTable) OnPlyOperate(operate tableoperate.PlayerOperate) error {
+	ply := s.GetPlayer(operate.Pid)
+	if ply == nil {
+		return errors.Errorf("not found player, pid=%d", operate.Pid)
+	}
+	if !ply.IsOperateValid(operate.OpType) {
+		return errors.Errorf("unalid op for ply op=%d, pid=%d", operate.OpType, operate.Pid)
+	}
+
+	if err := s.stateMachine.GetCurState().OnPlyOperate(operate); err != nil {
+		return err
+	}
+
+	// 跳过操作不通知玩家
+	if err := ply.DoOperate(operate.OpType, operate.OpData); err != nil {
+		return err
+	}
+
+	// if err := s.broadCastCommon(protocol.PROTOID_CS_DISCARD_CARD); err != nil {
+	// 	return err
+	// }
+
 	return nil
 }

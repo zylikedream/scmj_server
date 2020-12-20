@@ -1,7 +1,7 @@
 package sevenpair
 
 import (
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/cardmodel"
 	"zinx-mj/game/cardmodel/icardmodel"
 )
@@ -9,7 +9,7 @@ import (
 type SevenPair struct {
 }
 
-func (s *SevenPair) IsModel(pc *playercard.PlayerCard) bool {
+func (s *SevenPair) IsModel(pc *handcard.HandCard) bool {
 	// 不能有碰不能有杠
 	if len(pc.KongCards) > 0 || len(pc.PongCards) > 0 {
 		return false

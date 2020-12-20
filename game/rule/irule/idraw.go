@@ -1,8 +1,8 @@
 package irule
 
-import "zinx-mj/game/card/playercard"
+import handcard "zinx-mj/game/card/handcard"
 
 // 摸牌接口
 type IDraw interface {
-	Draw(pc *playercard.PlayerCard, card int) error
+	Draw(pc *handcard.HandCard, card int) error
 }

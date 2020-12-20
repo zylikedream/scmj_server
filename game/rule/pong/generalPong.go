@@ -1,7 +1,7 @@
 package pong
 
 import (
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -12,13 +12,13 @@ func NewGeneralPong() irule.IPong {
 	return &generalPong{}
 }
 
-func (g *generalPong) Pong(pc *playercard.PlayerCard, card int) error {
+func (g *generalPong) Pong(pc *handcard.HandCard, card int) error {
 	if err := pc.Pong(card); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (g *generalPong) CanPong(pc *playercard.PlayerCard, card int) bool {
+func (g *generalPong) CanPong(pc *handcard.HandCard, card int) bool {
 	return pc.GetCardNum(card) >= 2
 }

@@ -7,17 +7,38 @@ import (
 	"time"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/table/gametable/sccardtable"
-	"zinx-mj/game/table/itable"
+	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/network/protocol"
+	"zinx-mj/player"
 
 	"github.com/Pallinder/go-randomdata"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/aceld/zinx/zlog"
-	"github.com/golang/protobuf/proto"
 )
 
-var tables map[uint32]itable.ITable
+type ITable interface {
+	GetID() uint32
+	GetPlayer(pid player.PID) *tableplayer.TablePlayer
+	// 加入间坐姿
+	Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)
+	// 退出桌子
+	Quit(pid player.PID) error
+	// 得到桌子开始时间
+	GetStartTime() int64
+
+	// 桌子编号
+	GetTableNumber() uint32
+
+	PackToPBMsg() proto.Message
+
+	Update(delta time.Duration)
+
+	OnPlyOperate(data tableoperate.PlayerOperate) error
+}
+
+var tables map[uint32]ITable
 var tableLock sync.RWMutex
 var poolID []uint32
 var poolLock sync.Mutex
@@ -25,7 +46,7 @@ var poolLock sync.Mutex
 const poolCap = 10000
 
 func init() {
-	tables = make(map[uint32]itable.ITable)
+	tables = make(map[uint32]ITable)
 	poolID = make([]uint32, poolCap)
 	startID := randomdata.Number(111111, 678910)
 	for i := 0; i < len(poolID); i++ {
@@ -57,8 +78,8 @@ func poolPush(id uint32) error {
 	return nil
 }
 
-func CreateTable(master *tableplayer.TablePlayerData, tableType int, message proto.Message) (itable.ITable, error) {
-	var mjtable itable.ITable
+func CreateTable(master *tableplayer.TablePlayerData, tableType int, message proto.Message) (ITable, error) {
+	var mjtable ITable
 	var err error
 	switch tableType {
 	case gamedefine.TABLE_TYPE_SCMJ:
@@ -75,13 +96,13 @@ func CreateTable(master *tableplayer.TablePlayerData, tableType int, message pro
 	return mjtable, nil
 }
 
-func GetTable(id uint32) itable.ITable {
+func GetTable(id uint32) ITable {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
 	return tables[id]
 }
 
-func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (itable.ITable, error) {
+func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (ITable, error) {
 	msg, ok := req.(*protocol.CsCreateScmjTable)
 	if !ok {
 		zlog.Errorf("wrong message type %T", req)
@@ -89,7 +110,9 @@ func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (it
 	}
 
 	tableData := &sccardtable.ScTableData{}
-	tableData.UnpackFromPBMsg(msg.GetData())
+	if err := tableData.UnpackFromPBMsg(msg.GetData()); err != nil {
+		return nil, fmt.Errorf("unpcak pb msg failed: %s", err)
+	}
 	tableID, err := poolPop()
 	if err != nil {
 		return nil, fmt.Errorf("get table id failed%w", ErrCreateTableFailed)

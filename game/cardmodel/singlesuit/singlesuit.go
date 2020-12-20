@@ -2,7 +2,7 @@
 package singlesuit
 
 import (
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/cardmodel"
 	"zinx-mj/game/cardmodel/icardmodel"
 	"zinx-mj/game/gamedefine"
@@ -11,24 +11,24 @@ import (
 type SingleSuit struct {
 }
 
-func (s *SingleSuit) IsModel(pc *playercard.PlayerCard) bool {
+func (s *SingleSuit) IsModel(pc *handcard.HandCard) bool {
 	if pc.CardCount == 0 {
 		return false
 	}
 	suit := gamedefine.CARD_SUIT_EMPTY
-	for c, _ := range pc.HandCardMap {
+	for c := range pc.HandCardMap {
 		if suit == gamedefine.CARD_SUIT_EMPTY {
 			suit = gamedefine.GetCardSuit(c)
 		} else if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}
 	}
-	for c, _ := range pc.KongCards {
+	for c := range pc.KongCards {
 		if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}
 	}
-	for c, _ := range pc.PongCards {
+	for c := range pc.PongCards {
 		if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}

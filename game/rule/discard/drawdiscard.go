@@ -2,7 +2,7 @@ package discard
 
 import (
 	"fmt"
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -18,13 +18,10 @@ func NewDrawDiscard() irule.IDiscard {
  * Descrp: 玩家必须摸到哪张打哪张
  * Create: zhangyi 2020-07-03 14:44:52
  */
-func (d drawDiscard) Discard(pc *playercard.PlayerCard, crd int, dingqueSuit int) error {
+func (d drawDiscard) Discard(pc *handcard.HandCard, crd int, dingqueSuit int) error {
 	if crd != pc.GetLastDraw() {
 		return fmt.Errorf("can't discard card different with draw card, card=%d, draw=%d",
 			crd, pc.GetLastDraw())
-	}
-	if err := pc.Discard(crd); err != nil {
-		return err
 	}
 	return nil
 }

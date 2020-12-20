@@ -1,4 +1,4 @@
-package playercard
+package handcard
 
 import (
 	"fmt"
@@ -6,8 +6,7 @@ import (
 )
 
 // 玩家手牌
-type PlayerCard struct {
-	pid          int
+type HandCard struct {
 	HandCardMap  map[int]int      // 手牌map
 	TingCard     map[int]struct{} // 以听的牌
 	DiscardCards []int            // 玩家已打出的手牌
@@ -18,8 +17,8 @@ type PlayerCard struct {
 	MaxCardCount int              // 玩家最大手牌数量
 }
 
-func New(handCards []int, maxCardCount int) *PlayerCard {
-	playerCard := &PlayerCard{
+func New(handCards []int, maxCardCount int) *HandCard {
+	playerCard := &HandCard{
 		MaxCardCount: maxCardCount,
 	}
 	playerCard.HandCardMap = make(map[int]int, maxCardCount)
@@ -36,7 +35,7 @@ func New(handCards []int, maxCardCount int) *PlayerCard {
  * Descrp: 得到某张牌的数量
  * Create: zhangyi 2020-07-03 14:43:07
  */
-func (p *PlayerCard) GetCardNum(c int) int {
+func (p *HandCard) GetCardNum(c int) int {
 	return p.HandCardMap[c]
 }
 
@@ -44,7 +43,7 @@ func (p *PlayerCard) GetCardNum(c int) int {
  * Descrp: 出某一张牌
  * Create: zhangyi 2020-07-03 14:42:46
  */
-func (p *PlayerCard) Discard(c int) error {
+func (p *HandCard) Discard(c int) error {
 	if err := p.DecCard(c, 1); err != nil {
 		return err
 	}
@@ -56,7 +55,7 @@ func (p *PlayerCard) Discard(c int) error {
  * Descrp: 减少手牌
  * Create: zhangyi 2020-07-03 16:56:18
  */
-func (p *PlayerCard) DecCard(c int, num int) error {
+func (p *HandCard) DecCard(c int, num int) error {
 	if p.GetCardNum(c) < num {
 		return fmt.Errorf("dec failed, card not enough, card=%d, num=%d, dec=%d",
 			c, p.GetCardNum(c), num)
@@ -70,7 +69,7 @@ func (p *PlayerCard) DecCard(c int, num int) error {
  * Descrp: 得到上次摸的牌
  * Create: zhangyi 2020-07-03 14:43:23
  */
-func (p *PlayerCard) GetLastDraw() int {
+func (p *HandCard) GetLastDraw() int {
 	if len(p.DrawCards) == 0 {
 		return 0
 	}
@@ -81,7 +80,7 @@ func (p *PlayerCard) GetLastDraw() int {
  * Descrp:  摸一张牌
  * Create: zhangyi 2020-07-03 15:02:36
  */
-func (p *PlayerCard) Draw(c int) error {
+func (p *HandCard) Draw(c int) error {
 	if p.CardCount >= p.MaxCardCount {
 		return fmt.Errorf("card too much, cardCount=%d, maxCardCount=%d", p.CardCount, p.MaxCardCount)
 	}
@@ -95,7 +94,7 @@ func (p *PlayerCard) Draw(c int) error {
  * Param: cardSuit 花色
  * Create: zhangyi 2020-07-03 16:06:34
  */
-func (p *PlayerCard) GetCardBySuit(cardSuit int) []int {
+func (p *HandCard) GetCardBySuit(cardSuit int) []int {
 	var cards []int
 	for c, num := range p.HandCardMap {
 		if gamedefine.GetCardSuit(c) != cardSuit {
@@ -112,7 +111,7 @@ func (p *PlayerCard) GetCardBySuit(cardSuit int) []int {
  * Descrp: 杠牌
  * Create: zhangyi 2020-07-03 16:34:57
  */
-func (p *PlayerCard) Kong(c int) error {
+func (p *HandCard) Kong(c int) error {
 	if err := p.DecCard(c, 3); err != nil {
 		return err
 	}
@@ -124,7 +123,7 @@ func (p *PlayerCard) Kong(c int) error {
  * Descrp: 明杠牌（碰了以后杠)
  * Create: zhangyi 2020-07-03 16:49:31
  */
-func (p *PlayerCard) ExposedKong(c int) error {
+func (p *HandCard) ExposedKong(c int) error {
 	if _, ok := p.PongCards[c]; !ok {
 		return fmt.Errorf("can't exposed kong, card not pong, card=%d", c)
 	}
@@ -136,7 +135,7 @@ func (p *PlayerCard) ExposedKong(c int) error {
 	return nil
 }
 
-func (p *PlayerCard) IsPonged(c int) bool {
+func (p *HandCard) IsPonged(c int) bool {
 	if _, ok := p.PongCards[c]; ok {
 		return true
 	}
@@ -147,7 +146,7 @@ func (p *PlayerCard) IsPonged(c int) bool {
  * Descrp: 暗杠牌
  * Create: zhangyi 2020-07-03 17:03:26
  */
-func (p *PlayerCard) ConcealedKong(c int) error {
+func (p *HandCard) ConcealedKong(c int) error {
 	if err := p.DecCard(c, 4); err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func (p *PlayerCard) ConcealedKong(c int) error {
  * Descrp: 碰牌
  * Create: zhangyi 2020-07-03 17:10:07
  */
-func (p *PlayerCard) Pong(c int) error {
+func (p *HandCard) Pong(c int) error {
 	if err := p.DecCard(c, 2); err != nil {
 		return err
 	}
@@ -167,16 +166,16 @@ func (p *PlayerCard) Pong(c int) error {
 	return nil
 }
 
-func (p *PlayerCard) IsTingCard(c int) bool {
+func (p *HandCard) IsTingCard(c int) bool {
 	_, ok := p.TingCard[c]
 	return ok
 }
 
-func (p *PlayerCard) GetCardTotalCount() int {
+func (p *HandCard) GetCardTotalCount() int {
 	return p.CardCount
 }
 
-func (p *PlayerCard) GetCardArray() []int {
+func (p *HandCard) GetCardArray() []int {
 	var cards []int
 	for card, count := range p.HandCardMap {
 		for i := 0; i < count; i++ {

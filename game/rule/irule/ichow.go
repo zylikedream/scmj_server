@@ -1,8 +1,8 @@
 package irule
 
-import "zinx-mj/game/card/playercard"
+import handcard "zinx-mj/game/card/handcard"
 
 // 吃牌接口
 type IChow interface {
-	Chow(cards *playercard.PlayerCard, card int) error
+	Chow(cards *handcard.HandCard, card int) error
 }

@@ -2,7 +2,7 @@ package chow
 
 import (
 	"errors"
-	"zinx-mj/game/card/playercard"
+	handcard "zinx-mj/game/card/handcard"
 	"zinx-mj/game/rule/irule"
 )
 
@@ -14,6 +14,6 @@ func NewEmptyChow() irule.IChow {
 	return &emptyChow{}
 }
 
-func (e *emptyChow) Chow(cards *playercard.PlayerCard, card int) error {
+func (e *emptyChow) Chow(cards *handcard.HandCard, card int) error {
 	return errors.New("chow card not allowed")
 }

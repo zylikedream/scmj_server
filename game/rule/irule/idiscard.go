@@ -1,8 +1,8 @@
 package irule
 
-import "zinx-mj/game/card/playercard"
+import handcard "zinx-mj/game/card/handcard"
 
 // 出牌接口
 type IDiscard interface {
-	Discard(playerCard *playercard.PlayerCard, card int, dingqueSuit int) error
+	Discard(HandCard *handcard.HandCard, card int, dingqueSuit int) error
 }
