@@ -10,7 +10,6 @@ import (
 	"zinx-mj/game/rule/chow"
 	"zinx-mj/game/rule/deal"
 	"zinx-mj/game/rule/discard"
-	"zinx-mj/game/rule/draw"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/rule/kong"
 	"zinx-mj/game/rule/pong"
@@ -33,21 +32,21 @@ import (
 )
 
 type ScCardTable struct {
-	id      uint32                     // 桌子ID
-	players []*tableplayer.TablePlayer // 房间的玩家
-	startTm int64
-	turn    int // 游戏局数
+	id           uint32                     // 桌子ID
+	players      []*tableplayer.TablePlayer // 房间的玩家
+	startTm      int64
+	games        int // 游戏局数
+	turnSeat     int // 当前回合的玩家
+	nextTurnSeat int // 当前操作的玩家
 
-	data           *ScTableData
-	curPlayerIndex int
-	event          *ScTableEvent
-	board          *boardcard.BoardCard
-	stateMachine   *tablestate.StateMachine
+	data         *ScTableData
+	event        *ScTableEvent
+	board        *boardcard.BoardCard
+	stateMachine *tablestate.StateMachine
 
 	boardRule   irule.IBoard
 	chowRule    irule.IChow
 	discardRule irule.IDiscard
-	drawRule    irule.IDraw
 	kongRule    irule.IKong
 	pongRule    irule.IPong
 	shuffleRule irule.IShuffle
@@ -65,7 +64,6 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.boardRule = board.NewThreeSuitBoard()
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
-	t.drawRule = draw.NewGeneralDraw()
 	t.kongRule = kong.NewGeneralKong()
 	t.pongRule = pong.NewGeneralPong()
 	t.shuffleRule = shuffle.NewRandomShuffle()
@@ -96,13 +94,23 @@ func (s *ScCardTable) GetID() uint32 {
 	return s.id
 }
 
+func (s *ScCardTable) GetPlayerSeat(pid uint64) int {
+	for i := range s.players {
+		ply := s.players[i]
+		if ply.Pid == pid {
+			return i
+		}
+	}
+	return len(s.players)
+}
+
 func (s *ScCardTable) onGameStart() error {
 	// 初始化玩家手牌
 	s.initializeHandCard()
-	s.turn++ // 增加游戏局数
+	s.games++ // 增加游戏局数
 
 	// 初始化庄家
-	s.curPlayerIndex = rand.Intn(s.data.MaxPlayer) // 随机庄家
+	s.nextTurnSeat = rand.Intn(s.data.MaxPlayer) // 随机庄家
 	// 稍后广播玩家手牌
 	msg := &protocol.ScGameTurnStart{}
 	// todo 抽象筛子点数rule
@@ -118,6 +126,9 @@ func (s *ScCardTable) onGameStart() error {
 		zlog.Errorf("broadcast card info failed, err=%s", err)
 		return err
 	}
+
+	// 初始化座位
+	s.UpdateTurnSeat()
 	// 初始状态为抽牌状态
 	if err := s.stateMachine.SetInitState(tablestate.TABLE_STATE_DRAW); err != nil {
 		return err
@@ -126,13 +137,20 @@ func (s *ScCardTable) onGameStart() error {
 	return nil
 }
 
-func (s *ScCardTable) GetPlayer(pid player.PID) *tableplayer.TablePlayer {
+func (s *ScCardTable) GetPlayerByPid(pid player.PID) *tableplayer.TablePlayer {
 	for _, ply := range s.players {
 		if pid == ply.Pid {
 			return ply
 		}
 	}
 	return nil
+}
+
+func (s *ScCardTable) GetPlayerBySeat(seat int) *tableplayer.TablePlayer {
+	if seat >= len(s.players) || seat < 0 {
+		return nil
+	}
+	return s.players[seat]
 }
 
 func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
@@ -195,7 +213,7 @@ func (s *ScCardTable) PackToPBMsg() proto.Message {
 func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 	// 通知其它玩家该玩家加入了房间 // 其实应该延迟一帧发送，需要等待其他协议
 	msg := &protocol.ScJoinTable{}
-	ply := s.GetPlayer(pid)
+	ply := s.GetPlayerByPid(pid)
 	if ply == nil {
 		return errors.WithStack(mjerror.ErrPlyNotFound)
 	}
@@ -282,18 +300,21 @@ func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
 
 func (s *ScCardTable) Update(delta time.Duration) {
 	s.event.FireAll() // 处理所有的事件
+	if err := s.stateMachine.Update(); err != nil {
+		zlog.Errorf("update state machine failed, err:%s", err)
+	}
 }
 
-func (s *ScCardTable) drawCard(index int) error {
-	ply := s.players[index]
+func (s *ScCardTable) DrawCard() error {
+	turnPly := s.GetTurnPlayer()
 	card, err := s.board.DrawForward()
 	if err != nil {
-		return errors.WithStack(err)
+		return err
 	}
-	if err = s.drawRule.Draw(ply.Hcard, card); err != nil {
-		return errors.WithStack(err)
+	if err = turnPly.DrawCard(card); err != nil {
+		return err
 	}
-	s.broadCastDrawCard(ply.Pid, card)
+	s.broadCastDrawCard(turnPly.Pid, card)
 	return nil
 }
 
@@ -314,27 +335,79 @@ func (s *ScCardTable) GetDiscardRule() irule.IDiscard {
 	return s.discardRule
 }
 
-func (s *ScCardTable) OnPlyOperate(operate tableoperate.PlayerOperate) error {
-	ply := s.GetPlayer(operate.Pid)
+func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {
+	ply := s.GetPlayerByPid(pid)
 	if ply == nil {
-		return errors.Errorf("not found player, pid=%d", operate.Pid)
+		return errors.Errorf("not found player, pid=%d", pid)
 	}
 	if !ply.IsOperateValid(operate.OpType) {
-		return errors.Errorf("unalid op for ply op=%d, pid=%d", operate.OpType, operate.Pid)
+		return errors.Errorf("unalid op for ply op=%d, pid=%d", operate.OpType, pid)
 	}
 
-	if err := s.stateMachine.GetCurState().OnPlyOperate(operate); err != nil {
+	if err := s.stateMachine.GetCurState().OnPlyOperate(pid, operate); err != nil {
 		return err
 	}
 
 	// 跳过操作不通知玩家
-	if err := ply.DoOperate(operate.OpType, operate.OpData); err != nil {
+	if err := ply.DoOperate(operate); err != nil {
 		return err
+	}
+
+	// 更新下一个回合的玩家
+	if operate.OpType != tableoperate.OPERATE_PASS {
+		turnSeat := s.GetTurnSeat()
+		maxPlayer := s.data.MaxPlayer
+		plySeat := s.GetPlayerSeat(ply.Pid)
+		// 靠后的玩家才会更新
+		if util.SeatRelative(plySeat, turnSeat, maxPlayer) > util.SeatRelative(s.nextTurnSeat, turnSeat, maxPlayer) {
+			s.SetNextSeat(plySeat)
+		}
 	}
 
 	// if err := s.broadCastCommon(protocol.PROTOID_CS_DISCARD_CARD); err != nil {
 	// 	return err
 	// }
 
+	return nil
+}
+
+func (s *ScCardTable) GetTurnSeat() int {
+	return s.turnSeat
+}
+
+func (s *ScCardTable) GetTurnPlayer() *tableplayer.TablePlayer {
+	return s.GetPlayerBySeat(s.turnSeat)
+}
+
+func (s *ScCardTable) GetNextTurnPlayer() *tableplayer.TablePlayer {
+	return s.GetPlayerBySeat(s.nextTurnSeat)
+}
+
+// 更新的玩家回合时需要清掉玩家的所有操作
+func (s *ScCardTable) UpdateTurnSeat() {
+	s.turnSeat = s.nextTurnSeat
+	for _, ply := range s.players {
+		ply.ClearOperates()
+	}
+}
+
+func (s *ScCardTable) SetNextSeat(seat int) {
+	if seat > s.data.MaxPlayer {
+		seat = 0
+	}
+	s.nextTurnSeat = seat
+}
+
+func (s *ScCardTable) AfterDiscard() error {
+	turnPly := s.GetTurnPlayer()
+	c := turnPly.Hcard.GetLastDiscard()
+	for i := range s.players {
+		ply := s.players[i]
+		if ply.Pid == turnPly.Pid {
+			continue
+		}
+		ops := ply.GetOperateOnOtherTurn(c)
+		ply.AddOperate(ops...)
+	}
 	return nil
 }

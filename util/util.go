@@ -82,3 +82,11 @@ func SendMsg(pid player.PID, protoID protocol.PROTOID, msg proto.Message) error 
 	}
 	return nil
 }
+
+// 座位seat相对于start的相对位置
+func SeatRelative(seat int, start int, maxSeat int) int {
+	if seat >= start {
+		return seat - start
+	}
+	return seat + maxSeat - start
+}

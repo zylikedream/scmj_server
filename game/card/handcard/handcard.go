@@ -76,6 +76,14 @@ func (p *HandCard) GetLastDraw() int {
 	return p.DrawCards[len(p.DrawCards)-1]
 }
 
+// 得到上次打的牌
+func (p *HandCard) GetLastDiscard() int {
+	if len(p.DiscardCards) == 0 {
+		return 0
+	}
+	return p.DiscardCards[len(p.DiscardCards)-1]
+}
+
 /*
  * Descrp:  摸一张牌
  * Create: zhangyi 2020-07-03 15:02:36

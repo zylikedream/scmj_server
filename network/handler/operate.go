@@ -32,14 +32,13 @@ func (c *PlayerOperate) Handle(request ziface.IRequest) {
 	}
 
 	tb := tablemgr.GetTable(ply.TableID)
-	plyOperate := tableoperate.PlayerOperate{
-		Pid:    req.Pid,
+	plyOperate := tableoperate.OperateCommand{
 		OpType: int(req.OpType),
 		OpData: tableoperate.OperateData{
 			Card: int(req.Data.Card),
 		},
 	}
-	if err := tb.OnPlyOperate(plyOperate); err != nil {
+	if err := tb.OnPlyOperate(ply.Pid, plyOperate); err != nil {
 		zlog.Errorf("operate failed, pid=%d, err=%s\n", err)
 		return
 	}

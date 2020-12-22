@@ -20,7 +20,8 @@ import (
 
 type ITable interface {
 	GetID() uint32
-	GetPlayer(pid player.PID) *tableplayer.TablePlayer
+	GetPlayerByPid(pid player.PID) *tableplayer.TablePlayer
+	GetPlayerBySeat(seat int) *tableplayer.TablePlayer
 	// 加入间坐姿
 	Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)
 	// 退出桌子
@@ -35,7 +36,7 @@ type ITable interface {
 
 	Update(delta time.Duration)
 
-	OnPlyOperate(data tableoperate.PlayerOperate) error
+	OnPlyOperate(pid uint64, data tableoperate.OperateCommand) error
 }
 
 var tables map[uint32]ITable
