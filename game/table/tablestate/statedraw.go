@@ -49,5 +49,5 @@ func (s *StateDraw) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 		return errors.Errorf("operate unvalid, op:%d validops:%v", data.OpType, turnPly.GetOperates())
 	}
 	s.op = data.OpType
-
+	return nil
 }
