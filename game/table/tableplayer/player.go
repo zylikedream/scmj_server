@@ -36,6 +36,9 @@ func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePl
 	ply := &TablePlayer{
 		TablePlayerData: *playerData,
 		table:           table,
+		operateLog: []tableoperate.OperateCommand{
+			{OpType: tableoperate.OPERATE_EMPTY}, // 哨兵命令
+		},
 	}
 	return ply
 }
@@ -88,7 +91,7 @@ func (t *TablePlayer) GetOperateOnOtherTurn(c int) []int {
 	}
 
 	if t.Hcard.GetCardNum(c) == 3 {
-		ops = append(ops, tableoperate.OPERATE_KONG)
+		ops = append(ops, tableoperate.OPERATE_KONG_WIND)
 	}
 	if t.Hcard.GetCardNum(c) >= 2 {
 		ops = append(ops, tableoperate.OPERATE_PONG)
@@ -108,20 +111,14 @@ func (t *TablePlayer) GetOperateWithSelfTurn() []int {
 	if t.table.GetWinRule().CanWin(t.Hcard.GetCardArray()) {
 		ops = append(ops, tableoperate.OPERATE_WIN)
 	}
-	var CanKang, CanPong bool
 	for c, num := range t.Hcard.HandCardMap {
-		if num == 4 {
-			CanKang = true
+		if num == 4 { // 暗杠
+			ops = append(ops, tableoperate.OPERATE_KONG_CONCEALED)
+			break
+		} else if _, ok := t.Hcard.PongCards[c]; ok { // 明杠
+			ops = append(ops, tableoperate.OPERATE_KONG_EXPOSED)
+			break
 		}
-		if _, ok := t.Hcard.PongCards[c]; ok {
-			CanPong = true
-		}
-	}
-	if CanKang {
-		ops = append(ops, tableoperate.OPERATE_KONG)
-	}
-	if CanPong {
-		ops = append(ops, tableoperate.OPERATE_PONG)
 	}
 	ops = append(ops, tableoperate.OPERATE_DISCARD) // 自己回合可以打牌
 	sort.Ints(ops)                                  // 按照优先级排序
@@ -130,6 +127,10 @@ func (t *TablePlayer) GetOperateWithSelfTurn() []int {
 
 func (t *TablePlayer) AddOperateLog(cmd tableoperate.OperateCommand) {
 	t.operateLog = append(t.operateLog, cmd) // 记录命令
+}
+
+func (t *TablePlayer) GetLastOperate() tableoperate.OperateCommand {
+	return t.operateLog[len(t.operateLog)-1]
 }
 
 func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
