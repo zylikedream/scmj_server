@@ -2,9 +2,8 @@ package util
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
-	"zinx-mj/game/table/tableplayer"
-	"zinx-mj/mjerror"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 	"zinx-mj/player/playermgr"
@@ -60,17 +59,6 @@ func GetPidConn(pid player.PID) ziface.IConnection {
 	return ply.Conn
 }
 
-func PackTablePlayerDataFromPly(pid player.PID) (*tableplayer.TablePlayerData, error) {
-	ply := playermgr.GetPlayerByPid(pid)
-	if ply == nil {
-		return nil, fmt.Errorf("pid=%d:%w", pid, mjerror.ErrPlyNotFound)
-	}
-	return &tableplayer.TablePlayerData{
-		Pid:  ply.Pid,
-		Name: ply.Name,
-	}, nil
-}
-
 func SendMsg(pid player.PID, protoID protocol.PROTOID, msg proto.Message) error {
 	data, err := proto.Marshal(msg)
 	if err != nil {
@@ -89,4 +77,25 @@ func SeatRelative(seat int, start int, maxSeat int) int {
 		return seat - start
 	}
 	return seat + maxSeat - start
+}
+
+// 通过交换元素的方式删除数组中某个元素（删除后顺序将被打乱！！！)
+// 将返回删除的元素
+func RemoveElemWithoutOrder(i int, psl interface{}) interface{} {
+	v := reflect.ValueOf(psl)
+	if v.Kind() != reflect.Ptr {
+		return nil
+	}
+	sl := v.Elem()
+	if sl.Kind() != reflect.Slice {
+		return nil
+	}
+	l := sl.Len()
+	if i >= l {
+		return nil
+	}
+	e := sl.Index(i)
+	sl.Index(i).Set(sl.Index(l - 1))
+	sl.SetLen(l - 1)
+	return e.Interface()
 }

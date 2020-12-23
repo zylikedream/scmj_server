@@ -1,8 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/table/tablemgr"
+	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/mjerror"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 	"zinx-mj/player/playermgr"
@@ -13,6 +16,17 @@ import (
 	"github.com/aceld/zinx/znet"
 	"google.golang.org/protobuf/proto"
 )
+
+func PackTablePlayerDataFromPly(pid player.PID) (*tableplayer.TablePlayerData, error) {
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return nil, fmt.Errorf("pid=%d:%w", pid, mjerror.ErrPlyNotFound)
+	}
+	return &tableplayer.TablePlayerData{
+		Pid:  ply.Pid,
+		Name: ply.Name,
+	}, nil
+}
 
 type CreateTable struct {
 	znet.BaseRouter

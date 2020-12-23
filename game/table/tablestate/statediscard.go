@@ -3,6 +3,7 @@ package tablestate
 import (
 	"sort"
 	"zinx-mj/game/table/tableoperate"
+	"zinx-mj/util"
 
 	"github.com/pkg/errors"
 )
@@ -74,7 +75,7 @@ func (s *StateDiscard) OnUpdate() (IState, error) {
 		return nil, nil
 	}
 	nextPly := s.table.GetNextTurnPlayer()
-	// 得到下一个玩家的操作
+	// 得到下一个玩家的操作, 如果没有默认就是抽牌
 	var op int
 	for _, log := range s.oplog {
 		if log.Pid == nextPly.Pid {
@@ -113,8 +114,7 @@ func (s *StateDiscard) OnPlyOperate(pid uint64, data tableoperate.OperateCommand
 	}
 
 	// 删除该pids
-	curAct.Pids[pidIndex] = curAct.Pids[len(curAct.Pids)-1]
-	curAct.Pids = curAct.Pids[:len(curAct.Pids)-1]
+	util.RemoveElemWithoutOrder(pidIndex, &curAct.Pids)
 
 	s.oplog = append(s.oplog, OpLog{
 		Op:  data.OpType,

@@ -12,7 +12,6 @@ type ITableForState interface {
 	UpdateTurnSeat()
 	GetTurnPlayer() *tableplayer.TablePlayer
 	DrawCard() error
-	AfterDiscard() error
 	GetPlayers() []*tableplayer.TablePlayer
 	GetTurnSeat() int
 	SetNextSeat(seat int)
@@ -20,11 +19,12 @@ type ITableForState interface {
 }
 
 const (
-	TABLE_STATE_WIN     = "state_win"
-	TABLE_STATE_KONG    = "state_kong"
-	TABLE_STATE_PONG    = "state_gong"
-	TABLE_STATE_DISCARD = "state_discard"
-	TABLE_STATE_DRAW    = "state_draw"
+	TABLE_STATE_WIN            = "state_win"
+	TABLE_STATE_KONG           = "state_kong"
+	TABLE_STATE_KONG_CONCEALED = "state_kong_concealed"
+	TABLE_STATE_PONG           = "state_gong"
+	TABLE_STATE_DISCARD        = "state_discard"
+	TABLE_STATE_DRAW           = "state_draw"
 )
 
 type StateMachine struct {
@@ -35,8 +35,12 @@ type StateMachine struct {
 func New(table ITableForState) *StateMachine {
 	sm := &StateMachine{
 		states: map[string]IState{
-			TABLE_STATE_DRAW:    NewStateDraw(table),
-			TABLE_STATE_DISCARD: NewStateDiscard(table),
+			TABLE_STATE_DRAW:           NewStateDraw(table),
+			TABLE_STATE_DISCARD:        NewStateDiscard(table),
+			TABLE_STATE_WIN:            NewStateWin(table),
+			TABLE_STATE_KONG:           NewStateKong(table),
+			TABLE_STATE_KONG_CONCEALED: NewStateKongConcealed(table),
+			TABLE_STATE_PONG:           NewStatePong(table),
 		},
 	}
 	for _, state := range sm.states {
@@ -90,13 +94,15 @@ func getStateByOperate(op int) string {
 	switch op {
 	case tableoperate.OPERATE_WIN:
 		return TABLE_STATE_WIN
-	case tableoperate.OPERATE_KONG_WIND, tableoperate.OPERATE_KONG_CONCEALED, tableoperate.OPERATE_KONG_EXPOSED:
+	case tableoperate.OPERATE_KONG_WIND, tableoperate.OPERATE_KONG_EXPOSED:
 		return TABLE_STATE_KONG
+	case tableoperate.OPERATE_KONG_CONCEALED:
+		return TABLE_STATE_KONG_CONCEALED
 	case tableoperate.OPERATE_PONG:
 		return TABLE_STATE_PONG
 	case tableoperate.OPERATE_DISCARD:
 		return TABLE_STATE_DISCARD
-	default:
+	default: // 默认是抽牌
 		return TABLE_STATE_DRAW
 	}
 }

@@ -20,3 +20,8 @@ type OperateCommand struct {
 type OperateData struct {
 	Card int
 }
+
+type PlyOperate struct {
+	Pid    uint64
+	OpType int
+}

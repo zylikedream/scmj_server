@@ -7,6 +7,7 @@ import (
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/player"
+	"zinx-mj/util"
 
 	"github.com/pkg/errors"
 )
@@ -67,8 +68,7 @@ func (t *TablePlayer) ClearOperates() {
 func (t *TablePlayer) clearOperate(op int) {
 	for i, vop := range t.validOperate {
 		if vop == op {
-			t.validOperate[i] = t.validOperate[len(t.validOperate)-1]
-			t.validOperate = t.validOperate[:len(t.validOperate)-1]
+			util.RemoveElemWithoutOrder(i, &t.validOperate)
 			break
 		}
 	}
@@ -83,8 +83,8 @@ func (t *TablePlayer) IsOperateValid(op int) bool {
 	return false
 }
 
-// 其他人回合的操作
-func (t *TablePlayer) GetOperateOnOtherTurn(c int) []int {
+// 出牌后的操作
+func (t *TablePlayer) GetOperateWithDiscard(c int) []int {
 	var ops []int
 	if t.Hcard.IsTingCard(c) {
 		ops = append(ops, tableoperate.OPERATE_WIN)
@@ -104,9 +104,9 @@ func (t *TablePlayer) GetOperateOnOtherTurn(c int) []int {
 
 }
 
-// 自己回合可以做的操作
+// 摸牌可以做的操作
 // 自己回合操作没有跳过选项, 必须要做出操作
-func (t *TablePlayer) GetOperateWithSelfTurn() []int {
+func (t *TablePlayer) GetOperateWithDraw() []int {
 	var ops []int
 	if t.table.GetWinRule().CanWin(t.Hcard.GetCardArray()) {
 		ops = append(ops, tableoperate.OPERATE_WIN)
@@ -122,6 +122,18 @@ func (t *TablePlayer) GetOperateWithSelfTurn() []int {
 	}
 	ops = append(ops, tableoperate.OPERATE_DISCARD) // 自己回合可以打牌
 	sort.Ints(ops)                                  // 按照优先级排序
+	return ops
+}
+
+// 其他人明杠可以做的操作
+func (t *TablePlayer) GetOperateWithConcealedKong(c int) []int {
+	var ops []int
+	if t.Hcard.IsTingCard(c) {
+		ops = append(ops, tableoperate.OPERATE_WIN)
+	}
+	if len(ops) > 0 {
+		ops = append(ops, tableoperate.OPERATE_PASS)
+	}
 	return ops
 }
 
@@ -165,6 +177,6 @@ func (t *TablePlayer) DrawCard(c int) error {
 	if err := t.Hcard.Draw(c); err != nil {
 		return err
 	}
-	t.AddOperate(t.GetOperateWithSelfTurn()...)
+	t.AddOperate(t.GetOperateWithDraw()...)
 	return nil
 }

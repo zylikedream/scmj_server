@@ -116,7 +116,7 @@ func (p *HandCard) GetCardBySuit(cardSuit int) []int {
 }
 
 /*
- * Descrp: 杠牌
+ * Descrp: 刮风
  * Create: zhangyi 2020-07-03 16:34:57
  */
 func (p *HandCard) Kong(c int) error {
@@ -191,4 +191,11 @@ func (p *HandCard) GetCardArray() []int {
 		}
 	}
 	return cards
+}
+
+// 推荐打的牌
+func (p *HandCard) GetRecommandCard() int {
+	for c := range p.HandCardMap {
+		return c
+	}
 }
