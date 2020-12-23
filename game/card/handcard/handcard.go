@@ -198,4 +198,5 @@ func (p *HandCard) GetRecommandCard() int {
 	for c := range p.HandCardMap {
 		return c
 	}
+	return gamedefine.CARD_MAX
 }

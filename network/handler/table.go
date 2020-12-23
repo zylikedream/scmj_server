@@ -51,7 +51,7 @@ func (c *CreateTable) Handle(request ziface.IRequest) { //处理conn业务的方
 
 func (c *CreateTable) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) *protocol.ScScmjTableInfo {
 
-	master, err := util.PackTablePlayerDataFromPly(pid)
+	master, err := PackTablePlayerDataFromPly(pid)
 	if err != nil {
 		return nil
 	}
@@ -87,7 +87,7 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	}
 
 	pid := util.GetConnPid(request.GetConnection())
-	plyData, err := util.PackTablePlayerDataFromPly(pid)
+	plyData, err := PackTablePlayerDataFromPly(pid)
 	if err != nil {
 		return
 	}
