@@ -256,21 +256,6 @@ func (s *ScCardTable) initializeHandCard() {
 	}
 }
 
-func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
-	for _, ply := range s.players {
-		msg := &protocol.ScDrawCard{Pid: pid}
-		if ply.Pid == pid { // 摸到的牌只会发给本人
-			msg.Card = int32(card)
-		} else {
-			msg.Card = -1
-		}
-		if err := util.SendMsg(ply.Pid, protocol.PROTOID_SC_DRAW_CARD, msg); err != nil {
-			zlog.Errorf("send msg error:%s", err)
-			return
-		}
-	}
-}
-
 func (s *ScCardTable) PackCardInfoForPlayer(pid uint64) *protocol.ScCardInfo {
 	msg := &protocol.ScCardInfo{}
 	msg.TableCard = &protocol.TableCardData{}
@@ -315,7 +300,6 @@ func (s *ScCardTable) DrawCard() error {
 	if err = turnPly.DrawCard(card); err != nil {
 		return err
 	}
-	s.broadCastDrawCard(turnPly.Pid, card)
 	err = s.broadCastRaw(protocol.PROTOID_SC_DRAW_CARD, func(pid uint64, seat int) proto.Message {
 		msg := &protocol.ScDrawCard{Pid: pid, Card: -1}
 		if turnPly.Pid == pid { // 摸到的牌只会发给本人
