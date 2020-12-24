@@ -183,7 +183,7 @@ func (p *HandCard) GetCardTotalCount() int {
 	return p.CardCount
 }
 
-func (p *HandCard) GetCardArray() []int {
+func (p *HandCard) GetHandCard() []int {
 	var cards []int
 	for card, count := range p.HandCardMap {
 		for i := 0; i < count; i++ {
@@ -199,4 +199,15 @@ func (p *HandCard) GetRecommandCard() int {
 		return c
 	}
 	return gamedefine.CARD_MAX
+}
+
+// 生成哨兵手牌
+func (p *HandCard) GetGuardHandCard() []int {
+	var cards []int
+	for _, count := range p.HandCardMap {
+		for i := 0; i < count; i++ {
+			cards = append(cards, -1)
+		}
+	}
+	return cards
 }

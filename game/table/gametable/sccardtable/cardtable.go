@@ -1,7 +1,6 @@
 package sccardtable
 
 import (
-	"fmt"
 	"math/rand"
 	"time"
 	"zinx-mj/game/card/boardcard"
@@ -46,7 +45,7 @@ type ScCardTable struct {
 	nextTurnSeat int // 当前操作的玩家
 
 	data         *ScTableData
-	event        *ScTableEvent
+	events       *ScTableEvent
 	board        *boardcard.BoardCard
 	stateMachine *tablestate.StateMachine
 	opTimers     []*OperateTimer
@@ -92,9 +91,9 @@ func (s *ScCardTable) initStateMachine() {
 }
 
 func (s *ScCardTable) initEvent() {
-	s.event = NewScTableEvent()
-	_ = s.event.Register(EVENT_JOIN, s.onJoinEvent)
-	_ = s.event.Register(EVENT_GAME_START, s.onGameStart)
+	s.events = NewScTableEvent()
+	_ = s.events.Register(EVENT_JOIN, s.onJoinEvent)
+	_ = s.events.Register(EVENT_GAME_START, s.onGameStart)
 }
 
 func (s *ScCardTable) GetID() uint32 {
@@ -124,13 +123,15 @@ func (s *ScCardTable) onGameStart() error {
 	msg.DiePoint = rand.Int31n(6) + 1
 
 	// 广播游戏开始消息
-	if err := s.broadCastCommon(protocol.PROTOID_SC_GAME_TURN_START, msg); err != nil {
+	if err := s.broadCast(protocol.PROTOID_SC_GAME_TURN_START, msg); err != nil {
 		zlog.Errorf("broadCast game start failed, err=%s", err)
 		return err
 	}
 	// 广播玩家手牌
-	if err := s.broadCastCardInfo(); err != nil {
-		zlog.Errorf("broadcast card info failed, err=%s", err)
+	err := s.broadCastRaw(protocol.PROTOID_SC_CARD_INFO, func(pid uint64, seat int) proto.Message {
+		return s.PackCardInfoForPlayer(pid)
+	})
+	if err != nil {
 		return err
 	}
 
@@ -165,8 +166,12 @@ func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32
 	ply.AddIdentity(identity)
 	s.players = append(s.players, ply)
 
-	s.event.Add(EVENT_JOIN, ply.Pid) // 延迟触发，等待玩家加入房间后再通知
+	s.events.Add(EVENT_JOIN, ply.Pid) // 延迟触发，等待玩家加入房间后再通知
 
+	// 人满了就开游戏
+	if s.IsFull() {
+		s.events.Add(EVENT_GAME_START) // 延迟触发，需要等待玩家进入以后再通知开始游戏
+	}
 	return ply, nil
 }
 
@@ -187,10 +192,17 @@ func (s *ScCardTable) GetTableNumber() uint32 {
 }
 
 // 广播同样的消息给所有玩家
-func (s *ScCardTable) broadCastCommon(protoID protocol.PROTOID, msg proto.Message) error {
-	for _, ply := range s.players {
-		if err := util.SendMsg(ply.Pid, protoID, msg); err != nil {
-			return fmt.Errorf("braodcast to player failed, pid=%d, protoID=%d", ply.Pid, protoID)
+func (s *ScCardTable) broadCast(protoID protocol.PROTOID, msg proto.Message) error {
+	return s.broadCastRaw(protoID, func(pid uint64, seat int) proto.Message {
+		return msg
+	})
+}
+
+func (s *ScCardTable) broadCastRaw(protoID protocol.PROTOID,
+	msgGenFunc func(pid uint64, seat int) proto.Message) error {
+	for i, ply := range s.players {
+		if err := util.SendMsg(ply.Pid, protoID, msgGenFunc(ply.Pid, i)); err != nil {
+			return errors.Errorf("braodcast to player failed, pid=%d, protoID=%d", ply.Pid, protoID)
 		}
 	}
 	return nil
@@ -226,14 +238,10 @@ func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 	}
 	msg.Player = s.PackPlayerData(ply)
 	msg.SeatIndex = int32(len(s.players)) - 1
-	if err := s.broadCastCommon(protocol.PROTOID_SC_JOIN_TABLE, msg); err != nil {
+	if err := s.broadCast(protocol.PROTOID_SC_JOIN_TABLE, msg); err != nil {
 		return err
 	}
 
-	// 人满了就开游戏
-	if s.IsFull() {
-		s.event.Add(EVENT_GAME_START) // 延迟发送，需要等待玩家进入以后再通知开始游戏
-	}
 	return nil
 }
 
@@ -246,16 +254,6 @@ func (s *ScCardTable) initializeHandCard() {
 		s.players[i].InitHandCard(s.board.Cards[:MAX_HAND_CARD_NUM])
 		s.board.Cards = s.board.Cards[MAX_HAND_CARD_NUM:]
 	}
-}
-
-func (s *ScCardTable) broadCastCardInfo() error {
-	for _, ply := range s.players {
-		cardInfo := s.PackCardInfo(ply.Pid)
-		if err := util.SendMsg(ply.Pid, protocol.PROTOID_SC_CARD_INFO, cardInfo); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
@@ -273,19 +271,19 @@ func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
 	}
 }
 
-func (s *ScCardTable) GetHandCardArray(ply *tableplayer.TablePlayer) []int {
-	// notice: cards必须是手牌的copy, 后面可能会修改
-	return ply.Hcard.GetCardArray()
-}
-
-func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
+func (s *ScCardTable) PackCardInfoForPlayer(pid uint64) *protocol.ScCardInfo {
 	msg := &protocol.ScCardInfo{}
 	msg.TableCard = &protocol.TableCardData{}
 	msg.TableCard.Total = int32(len(s.board.CardsTotal))
 	msg.TableCard.Left = int32(len(s.board.Cards))
 
 	for _, ply := range s.players {
-		cards := s.GetHandCardArray(ply)
+		var cards []int
+		if ply.Pid == pid {
+			cards = ply.Hcard.GetHandCard()
+		} else {
+			cards = ply.Hcard.GetGuardHandCard()
+		}
 		handCards := &protocol.HandCardData{}
 		for _, card := range cards {
 			handCards.Card = append(handCards.Card, int32(card))
@@ -305,7 +303,7 @@ func (s *ScCardTable) Update(delta time.Duration) {
 		zlog.Errorf("update state machine failed, err:%s", err)
 	}
 	// 处理所有的事件
-	s.event.FireAll()
+	s.events.FireAll()
 }
 
 func (s *ScCardTable) DrawCard() error {
@@ -318,6 +316,16 @@ func (s *ScCardTable) DrawCard() error {
 		return err
 	}
 	s.broadCastDrawCard(turnPly.Pid, card)
+	err = s.broadCastRaw(protocol.PROTOID_SC_DRAW_CARD, func(pid uint64, seat int) proto.Message {
+		msg := &protocol.ScDrawCard{Pid: pid, Card: -1}
+		if turnPly.Pid == pid { // 摸到的牌只会发给本人
+			msg.Card = int32(card)
+		}
+		return msg
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -378,7 +386,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 			Card: int32(operate.OpData.Card),
 		},
 	}
-	if err := s.broadCastCommon(protocol.PROTOID_CS_PLAYER_OPERATE, pbOperate); err != nil {
+	if err := s.broadCast(protocol.PROTOID_CS_PLAYER_OPERATE, pbOperate); err != nil {
 		return err
 	}
 

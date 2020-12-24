@@ -108,7 +108,7 @@ func (t *TablePlayer) GetOperateWithDiscard(c int) []int {
 // 自己回合操作没有跳过选项, 必须要做出操作
 func (t *TablePlayer) GetOperateWithDraw() []int {
 	var ops []int
-	if t.table.GetWinRule().CanWin(t.Hcard.GetCardArray()) {
+	if t.table.GetWinRule().CanWin(t.Hcard.GetHandCard()) {
 		ops = append(ops, tableoperate.OPERATE_WIN)
 	}
 	for c, num := range t.Hcard.HandCardMap {
