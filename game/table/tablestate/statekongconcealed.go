@@ -32,7 +32,7 @@ func (s *StateKongConcealed) OnEnter() error {
 }
 
 func (s *StateKongConcealed) OnUpdate() (IState, error) {
-	if len(s.pids) > 0 {
+	if len(s.pids) > 0 { // 等待外加的操作
 		return nil, nil
 	}
 

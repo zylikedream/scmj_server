@@ -68,7 +68,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 		startTm: time.Now().Unix(),
 		data:    data,
 	}
-	t.boardRule = board.NewThreeSuitBoard()
+	t.boardRule = board.NewThreeSuitBoard() // 三坊
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.kongRule = kong.NewGeneralKong()
@@ -93,8 +93,8 @@ func (s *ScCardTable) initStateMachine() {
 
 func (s *ScCardTable) initEvent() {
 	s.event = NewScTableEvent()
-	_ = s.event.On(EVENT_JOIN, s.onJoinEvent)
-	_ = s.event.On(EVENT_GAME_START, s.onGameStart)
+	_ = s.event.Register(EVENT_JOIN, s.onJoinEvent)
+	_ = s.event.Register(EVENT_GAME_START, s.onGameStart)
 }
 
 func (s *ScCardTable) GetID() uint32 {
@@ -165,7 +165,7 @@ func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32
 	ply.AddIdentity(identity)
 	s.players = append(s.players, ply)
 
-	s.event.Add(EVENT_JOIN, ply.Pid)
+	s.event.Add(EVENT_JOIN, ply.Pid) // 延迟触发，等待玩家加入房间后再通知
 
 	return ply, nil
 }
@@ -218,7 +218,7 @@ func (s *ScCardTable) PackToPBMsg() proto.Message {
 }
 
 func (s *ScCardTable) onJoinEvent(pid player.PID) error {
-	// 通知其它玩家该玩家加入了房间 // 其实应该延迟一帧发送，需要等待其他协议
+	// 通知其它玩家该玩家加入了房间
 	msg := &protocol.ScJoinTable{}
 	ply := s.GetPlayerByPid(pid)
 	if ply == nil {
@@ -232,7 +232,7 @@ func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 
 	// 人满了就开游戏
 	if s.IsFull() {
-		s.event.Add(EVENT_GAME_START)
+		s.event.Add(EVENT_GAME_START) // 延迟发送，需要等待玩家进入以后再通知开始游戏
 	}
 	return nil
 }
@@ -259,9 +259,8 @@ func (s *ScCardTable) broadCastCardInfo() error {
 }
 
 func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
-	msg := &protocol.ScDrawCard{}
-	msg.Pid = pid
 	for _, ply := range s.players {
+		msg := &protocol.ScDrawCard{Pid: pid}
 		if ply.Pid == pid { // 摸到的牌只会发给本人
 			msg.Card = int32(card)
 		} else {
@@ -274,17 +273,9 @@ func (s *ScCardTable) broadCastDrawCard(pid player.PID, card int) {
 	}
 }
 
-func (s *ScCardTable) GetHandCardArray(ply *tableplayer.TablePlayer, pid player.PID) []int {
+func (s *ScCardTable) GetHandCardArray(ply *tableplayer.TablePlayer) []int {
 	// notice: cards必须是手牌的copy, 后面可能会修改
-	cards := ply.Hcard.GetCardArray()
-	if ply.Pid == pid {
-		return cards
-	}
-	// 不是自己的就仅仅返回一个占位符
-	for i := 0; i < len(cards); i++ {
-		cards[i] = -1
-	}
-	return cards
+	return ply.Hcard.GetCardArray()
 }
 
 func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
@@ -294,7 +285,7 @@ func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
 	msg.TableCard.Left = int32(len(s.board.Cards))
 
 	for _, ply := range s.players {
-		cards := s.GetHandCardArray(ply, pid)
+		cards := s.GetHandCardArray(ply)
 		handCards := &protocol.HandCardData{}
 		for _, card := range cards {
 			handCards.Card = append(handCards.Card, int32(card))
@@ -307,6 +298,7 @@ func (s *ScCardTable) PackCardInfo(pid player.PID) *protocol.ScCardInfo {
 
 func (s *ScCardTable) Update(delta time.Duration) {
 	// 更新玩家operate的timer
+	s.UpdateOperateTimer()
 
 	// 更新状态机
 	if err := s.stateMachine.Update(); err != nil {
@@ -379,9 +371,16 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return err
 	}
 
-	// if err := s.broadCastCommon(protocol.PROTOID_CS_DISCARD_CARD); err != nil {
-	// 	return err
-	// }
+	pbOperate := &protocol.ScPlayerOperate{
+		Pid:    pid,
+		OpType: int32(operate.OpType),
+		Data: &protocol.PlayerOperateData{
+			Card: int32(operate.OpData.Card),
+		},
+	}
+	if err := s.broadCastCommon(protocol.PROTOID_CS_PLAYER_OPERATE, pbOperate); err != nil {
+		return err
+	}
 
 	return nil
 }
