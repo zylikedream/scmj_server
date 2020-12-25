@@ -30,8 +30,12 @@ var opOrder = []int{tableoperate.OPERATE_WIN, tableoperate.OPERATE_KONG_WIND, ta
 func NewStateDiscard(table ITableForState) *StateDiscard {
 	return &StateDiscard{
 		table: table,
-		acts:  make([]Action, len(opOrder)),
 	}
+}
+
+func (s *StateDiscard) Reset() {
+	s.acts = s.acts[0:0]
+	s.oplog = s.oplog[0:0]
 }
 
 func (s *StateDiscard) OnEnter() error {
@@ -88,6 +92,7 @@ func (s *StateDiscard) OnUpdate() (IState, error) {
 
 func (s *StateDiscard) OnExit() error {
 	s.table.UpdateTurnSeat()
+	s.Reset()
 	return nil
 }
 

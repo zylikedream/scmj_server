@@ -111,7 +111,7 @@ func (t *TablePlayer) GetOperateWithDraw() []int {
 	if t.table.GetWinRule().CanWin(t.Hcard.GetHandCard()) {
 		ops = append(ops, tableoperate.OPERATE_WIN)
 	}
-	for c, num := range t.Hcard.HandCardMap {
+	for c, num := range t.Hcard.CardMap {
 		if num == 4 { // 暗杠
 			ops = append(ops, tableoperate.OPERATE_KONG_CONCEALED)
 			break
@@ -169,8 +169,9 @@ func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
 	return nil
 }
 
-func (t *TablePlayer) InitHandCard(cards []int) {
-	t.Hcard = handcard.New(cards, len(cards))
+func (t *TablePlayer) InitHandCard(cards []int, cardMax int) error {
+	t.Hcard = handcard.New(cardMax)
+	return t.Hcard.SetHandCard(cards)
 }
 
 func (t *TablePlayer) DrawCard(c int) error {

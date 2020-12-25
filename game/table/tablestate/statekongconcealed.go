@@ -14,10 +14,14 @@ type StateKongConcealed struct {
 	pids  []uint64
 }
 
-func NewStateKongConcealed(table ITableForState) *StateDiscard {
-	return &StateDiscard{
+func NewStateKongConcealed(table ITableForState) *StateKongConcealed {
+	return &StateKongConcealed{
 		table: table,
 	}
+}
+
+func (s *StateKongConcealed) Reset() {
+	s.pids = s.pids[0:0]
 }
 
 func (s *StateKongConcealed) OnEnter() error {
@@ -50,6 +54,7 @@ func (s *StateKongConcealed) OnUpdate() (IState, error) {
 
 func (s *StateKongConcealed) OnExit() error {
 	s.table.UpdateTurnSeat()
+	s.Reset()
 	return nil
 }
 

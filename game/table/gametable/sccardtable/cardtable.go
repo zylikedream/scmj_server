@@ -39,7 +39,8 @@ type OperateTimer struct {
 type ScCardTable struct {
 	id           uint32                     // 桌子ID
 	players      []*tableplayer.TablePlayer // 房间的玩家
-	startTm      int64
+	createTime   time.Time
+	startTime    time.Time
 	games        int // 游戏局数
 	turnSeat     int // 当前回合的玩家
 	nextTurnSeat int // 当前操作的玩家
@@ -63,9 +64,9 @@ type ScCardTable struct {
 
 func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTableData) (*ScCardTable, error) {
 	t := &ScCardTable{
-		id:      tableID,
-		startTm: time.Now().Unix(),
-		data:    data,
+		id:         tableID,
+		createTime: time.Now(),
+		data:       data,
 	}
 	t.boardRule = board.NewThreeSuitBoard() // 三坊
 	t.chowRule = chow.NewEmptyChow()
@@ -79,7 +80,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 
 	t.initEvent()
 	t.initStateMachine()
-	_, err := t.Join(master, gamedefine.TABLE_IDENTIY_MASTER|gamedefine.TABLE_IDENTIY_PLAYER)
+	_, err := t.PlayerJoin(master, gamedefine.TABLE_IDENTIY_MASTER|gamedefine.TABLE_IDENTIY_PLAYER)
 	if err != nil {
 		return t, err
 	}
@@ -112,21 +113,31 @@ func (s *ScCardTable) GetPlayerSeat(pid uint64) int {
 
 func (s *ScCardTable) onGameStart() error {
 	// 初始化玩家手牌
-	s.initializeHandCard()
 	s.games++ // 增加游戏局数
 
 	// 初始化庄家
-	s.nextTurnSeat = rand.Intn(s.data.MaxPlayer) // 随机庄家
+	s.nextTurnSeat = rand.Intn(len(s.players)) // 随机庄家
+	s.UpdateTurnSeat()
+
 	// 稍后广播玩家手牌
 	msg := &protocol.ScGameTurnStart{}
 	// todo 抽象筛子点数rule
 	msg.DiePoint = rand.Int31n(6) + 1
 
+	// 设置初始化状态
+	if err := s.stateMachine.SetInitState(tablestate.TABLE_STATE_INIT); err != nil {
+		return err
+	}
+
+	s.startTime = time.Now()
+
+	s.initializeHandCard()
 	// 广播游戏开始消息
 	if err := s.broadCast(protocol.PROTOID_SC_GAME_TURN_START, msg); err != nil {
 		zlog.Errorf("broadCast game start failed, err=%s", err)
 		return err
 	}
+
 	// 广播玩家手牌
 	err := s.broadCastRaw(protocol.PROTOID_SC_CARD_INFO, func(pid uint64, seat int) proto.Message {
 		return s.PackCardInfoForPlayer(pid)
@@ -134,14 +145,6 @@ func (s *ScCardTable) onGameStart() error {
 	if err != nil {
 		return err
 	}
-
-	// 初始化座位
-	s.UpdateTurnSeat()
-	// 初始状态为抽牌状态
-	if err := s.stateMachine.SetInitState(tablestate.TABLE_STATE_DRAW); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -161,7 +164,7 @@ func (s *ScCardTable) GetPlayerBySeat(seat int) *tableplayer.TablePlayer {
 	return s.players[seat]
 }
 
-func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
+func (s *ScCardTable) PlayerJoin(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
 	ply := tableplayer.NewTablePlayer(plyData, s)
 	ply.AddIdentity(identity)
 	s.players = append(s.players, ply)
@@ -171,6 +174,11 @@ func (s *ScCardTable) Join(plyData *tableplayer.TablePlayerData, identity uint32
 	// 人满了就开游戏
 	if s.IsFull() {
 		s.events.Add(EVENT_GAME_START) // 延迟触发，需要等待玩家进入以后再通知开始游戏
+	}
+
+	tableData := s.PackToPBMsg()
+	if err := util.SendMsg(plyData.Pid, protocol.PROTOID_SC_TABLE_INFO, tableData); err != nil {
+		return nil, err
 	}
 	return ply, nil
 }
@@ -183,8 +191,12 @@ func (s *ScCardTable) Quit(pid player.PID) error {
 	panic("implement me")
 }
 
-func (s *ScCardTable) GetStartTime() int64 {
-	return s.startTm
+func (s *ScCardTable) IsGameStart() bool {
+	return !s.startTime.IsZero()
+}
+
+func (s *ScCardTable) GetCreateTime() time.Time {
+	return s.createTime
 }
 
 func (s *ScCardTable) GetTableNumber() uint32 {
@@ -201,7 +213,11 @@ func (s *ScCardTable) broadCast(protoID protocol.PROTOID, msg proto.Message) err
 func (s *ScCardTable) broadCastRaw(protoID protocol.PROTOID,
 	msgGenFunc func(pid uint64, seat int) proto.Message) error {
 	for i, ply := range s.players {
-		if err := util.SendMsg(ply.Pid, protoID, msgGenFunc(ply.Pid, i)); err != nil {
+		msg := msgGenFunc(ply.Pid, i)
+		if msg == nil { // 不发送给玩家
+			continue
+		}
+		if err := util.SendMsg(ply.Pid, protoID, msg); err != nil {
 			return errors.Errorf("braodcast to player failed, pid=%d, protoID=%d", ply.Pid, protoID)
 		}
 	}
@@ -218,10 +234,10 @@ func (s *ScCardTable) PackPlayerData(ply *tableplayer.TablePlayer) *protocol.Tab
 	}
 }
 
-func (s *ScCardTable) PackToPBMsg() proto.Message {
+func (s *ScCardTable) PackToPBMsg() *protocol.ScScmjTableInfo {
 	reply := &protocol.ScScmjTableInfo{}
 	reply.TableId = s.id
-	reply.StartTime = s.GetStartTime()
+	reply.StartTime = s.startTime.Unix()
 	reply.Data = s.data.PackToPBMsg().(*protocol.ScmjData)
 	for _, ply := range s.players {
 		reply.Players = append(reply.Players, s.PackPlayerData(ply))
@@ -245,14 +261,18 @@ func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 	return nil
 }
 
+const (
+	HAND_CARD_NUM     = 13
+	MAX_HAND_CARD_NUM = 14
+)
+
 func (s *ScCardTable) initializeHandCard() {
-	const MAX_HAND_CARD_NUM = 13
 	s.board = s.boardRule.NewBoard()
 	s.shuffleRule.Shuffle(s.board.Cards)
 
 	for i := 0; i < s.data.MaxPlayer; i++ {
-		s.players[i].InitHandCard(s.board.Cards[:MAX_HAND_CARD_NUM])
-		s.board.Cards = s.board.Cards[MAX_HAND_CARD_NUM:]
+		_ = s.players[i].InitHandCard(s.board.Cards[:HAND_CARD_NUM], MAX_HAND_CARD_NUM)
+		s.board.Cards = s.board.Cards[HAND_CARD_NUM:]
 	}
 }
 
@@ -281,6 +301,7 @@ func (s *ScCardTable) PackCardInfoForPlayer(pid uint64) *protocol.ScCardInfo {
 
 func (s *ScCardTable) Update(delta time.Duration) {
 	// 更新玩家operate的timer
+	s.events.FireAll()
 	s.UpdateOperateTimer()
 
 	// 更新状态机
@@ -288,7 +309,6 @@ func (s *ScCardTable) Update(delta time.Duration) {
 		zlog.Errorf("update state machine failed, err:%s", err)
 	}
 	// 处理所有的事件
-	s.events.FireAll()
 }
 
 func (s *ScCardTable) DrawCard() error {
@@ -297,6 +317,7 @@ func (s *ScCardTable) DrawCard() error {
 	if err != nil {
 		return err
 	}
+	zlog.Infof("player draw card, pid:%d, card:%d", turnPly.Pid, card)
 	if err = turnPly.DrawCard(card); err != nil {
 		return err
 	}
@@ -331,6 +352,7 @@ func (s *ScCardTable) GetDiscardRule() irule.IDiscard {
 }
 
 func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {
+	zlog.Infof("on ply operate, pid:%d, operate:%v", pid, operate)
 	ply := s.GetPlayerByPid(pid)
 	if ply == nil {
 		return errors.Errorf("not found player, pid=%d", pid)
@@ -343,7 +365,6 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return err
 	}
 
-	// 跳过操作不通知玩家
 	if err := ply.DoOperate(operate); err != nil {
 		return err
 	}
@@ -370,7 +391,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 			Card: int32(operate.OpData.Card),
 		},
 	}
-	if err := s.broadCast(protocol.PROTOID_CS_PLAYER_OPERATE, pbOperate); err != nil {
+	if err := s.broadCast(protocol.PROTOID_SC_PLAYER_OPERATE, pbOperate); err != nil {
 		return err
 	}
 
@@ -487,7 +508,7 @@ func (s *ScCardTable) UpdateTurnSeat() {
 }
 
 func (s *ScCardTable) SetNextSeat(seat int) {
-	if seat > s.data.MaxPlayer {
+	if seat >= s.data.MaxPlayer {
 		seat = 0
 	}
 	s.nextTurnSeat = seat

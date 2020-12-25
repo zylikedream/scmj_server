@@ -38,8 +38,8 @@ func (c *PlayerOperate) Handle(request ziface.IRequest) {
 			Card: int(req.Data.Card),
 		},
 	}
-	if err := tb.OnPlyOperate(ply.Pid, plyOperate); err != nil {
-		zlog.Errorf("operate failed, pid=%d, err=%s\n", err)
+	if err := tb.OnPlyOperate(pid, plyOperate); err != nil {
+		zlog.Errorf("operate failed, pid=%d, err=%s\n", pid, err)
 		return
 	}
 }

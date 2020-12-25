@@ -23,16 +23,12 @@ type ITable interface {
 	GetPlayerByPid(pid player.PID) *tableplayer.TablePlayer
 	GetPlayerBySeat(seat int) *tableplayer.TablePlayer
 	// 加入间坐姿
-	Join(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)
+	PlayerJoin(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error)
 	// 退出桌子
 	Quit(pid player.PID) error
-	// 得到桌子开始时间
-	GetStartTime() int64
 
 	// 桌子编号
 	GetTableNumber() uint32
-
-	PackToPBMsg() proto.Message
 
 	Update(delta time.Duration)
 
@@ -103,7 +99,7 @@ func GetTable(id uint32) ITable {
 	return tables[id]
 }
 
-func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (ITable, error) {
+func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (*sccardtable.ScCardTable, error) {
 	msg, ok := req.(*protocol.CsCreateScmjTable)
 	if !ok {
 		zlog.Errorf("wrong message type %T", req)

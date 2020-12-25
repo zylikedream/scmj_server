@@ -11,8 +11,8 @@ type StatePong struct {
 	table ITableForState
 }
 
-func NewStatePong(table ITableForState) *StateDiscard {
-	return &StateDiscard{
+func NewStatePong(table ITableForState) *StatePong {
+	return &StatePong{
 		table: table,
 	}
 }

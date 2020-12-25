@@ -23,7 +23,9 @@ type ScTableEvent struct {
 }
 
 func NewScTableEvent() *ScTableEvent {
-	return &ScTableEvent{}
+	return &ScTableEvent{
+		callback: make(map[string]interface{}),
+	}
 }
 
 func (s *ScTableEvent) Add(name string, params ...interface{}) {
@@ -44,7 +46,7 @@ func (s *ScTableEvent) Register(name string, callback interface{}) error {
 func (s *ScTableEvent) FireAll() {
 	for _, eve := range s.events {
 		f, in, err := s.parse(eve.name, eve.params...)
-		if err == nil {
+		if err != nil {
 			zlog.Errorf("fire event failed, event:%v", eve)
 		}
 		f.Call(in)

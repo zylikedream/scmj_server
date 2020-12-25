@@ -5,6 +5,8 @@ import (
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/game/table/tableplayer"
 
+	"github.com/aceld/zinx/zlog"
+
 	"github.com/pkg/errors"
 )
 
@@ -25,6 +27,7 @@ const (
 	TABLE_STATE_PONG           = "state_gong"
 	TABLE_STATE_DISCARD        = "state_discard"
 	TABLE_STATE_DRAW           = "state_draw"
+	TABLE_STATE_INIT           = "state_init"
 )
 
 type StateMachine struct {
@@ -41,10 +44,12 @@ func New(table ITableForState) *StateMachine {
 			TABLE_STATE_KONG:           NewStateKong(table),
 			TABLE_STATE_KONG_CONCEALED: NewStateKongConcealed(table),
 			TABLE_STATE_PONG:           NewStatePong(table),
+			TABLE_STATE_INIT:           NewStateInit(table),
 		},
 	}
-	for _, state := range sm.states {
+	for name, state := range sm.states {
 		state.SetStateMachine(sm)
+		state.SetName(name)
 	}
 	return sm
 }
@@ -61,6 +66,7 @@ func (sm *StateMachine) SetInitState(stateName string) error {
 	if state, ok := sm.states[stateName]; !ok {
 		return errors.Errorf("no state, name:%s", stateName)
 	} else {
+		sm.curState = state
 		if err := state.OnEnter(); err != nil {
 			return err
 		}
@@ -74,7 +80,7 @@ func (sm *StateMachine) Next(nextState IState) error {
 			return fmt.Errorf("onExit state %s err, err=%s", sm.curState.GetName(), err)
 		}
 	}
-
+	zlog.Infof("change state: %s->%s", sm.curState.GetName(), nextState.GetName())
 	sm.curState = nextState
 	if err := nextState.OnEnter(); err != nil {
 		return fmt.Errorf("onEnter state %s err, err=%s", nextState.GetName(), err)
@@ -83,9 +89,15 @@ func (sm *StateMachine) Next(nextState IState) error {
 }
 
 func (sm *StateMachine) Update() error {
+	if sm.curState == nil {
+		return nil
+	}
 	nextState, err := sm.curState.OnUpdate()
 	if err != nil {
 		return err
+	}
+	if nextState == nil {
+		return nil
 	}
 	return sm.Next(nextState)
 }
@@ -113,11 +125,13 @@ type IStateMachine interface {
 
 type IState interface {
 	GetName() string
+	SetName(name string)
 	OnEnter() error
 	OnUpdate() (IState, error)
 	OnPlyOperate(pid uint64, data tableoperate.OperateCommand) error
 	OnExit() error
 	SetStateMachine(sm IStateMachine)
+	Reset()
 }
 
 type StateBase struct {
@@ -129,6 +143,10 @@ func (s *StateBase) GetName() string {
 	return s.name
 }
 
+func (s *StateBase) SetName(name string) {
+	s.name = name
+}
+
 func (s *StateBase) OnEnter() error {
 	return nil
 }
@@ -138,6 +156,7 @@ func (s *StateBase) OnUpdate() (IState, error) {
 }
 
 func (s *StateBase) OnExit() error {
+	s.Reset()
 	return nil
 }
 
@@ -147,4 +166,8 @@ func (s *StateBase) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 
 func (s *StateBase) SetStateMachine(sm IStateMachine) {
 	s.stateMachine = sm
+}
+
+func (s *StateBase) Reset() {
+	return
 }

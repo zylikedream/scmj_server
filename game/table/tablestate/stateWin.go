@@ -11,8 +11,8 @@ type StateWin struct {
 	table ITableForState
 }
 
-func NewStateWin(table ITableForState) *StateDiscard {
-	return &StateDiscard{
+func NewStateWin(table ITableForState) *StateWin {
+	return &StateWin{
 		table: table,
 	}
 }

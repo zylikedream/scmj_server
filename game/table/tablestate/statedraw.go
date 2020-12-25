@@ -12,9 +12,10 @@ type StateDraw struct {
 	op    int
 }
 
-func NewStateDraw(table ITableForState) *StateDiscard {
-	return &StateDiscard{
+func NewStateDraw(table ITableForState) *StateDraw {
+	return &StateDraw{
 		table: table,
+		op:    tableoperate.OPERATE_EMPTY,
 	}
 }
 
@@ -27,7 +28,7 @@ func (s *StateDraw) OnEnter() error {
 }
 
 func (s *StateDraw) OnUpdate() (IState, error) {
-	if s.op > 0 {
+	if s.op == tableoperate.OPERATE_EMPTY {
 		return nil, nil
 	}
 
@@ -37,6 +38,7 @@ func (s *StateDraw) OnUpdate() (IState, error) {
 
 func (s *StateDraw) OnExit() error {
 	s.table.UpdateTurnSeat()
+	s.Reset()
 	return nil
 }
 
@@ -50,4 +52,8 @@ func (s *StateDraw) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 	}
 	s.op = data.OpType
 	return nil
+}
+
+func (s *StateDraw) Reset() {
+	s.op = tableoperate.OPERATE_EMPTY
 }

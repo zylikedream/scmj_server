@@ -36,37 +36,33 @@ func (c *CreateTable) Handle(request ziface.IRequest) { //处理conn业务的方
 	data := request.GetData()
 	req := &protocol.CsCreateScmjTable{}
 	if err := proto.Unmarshal(data, req); err != nil {
-		zlog.Errorf("unpack create table proto failed, err=%s\n", err)
+		zlog.Errorf("unpack create table proto failed, err:%s\n", err)
 		return
 	}
 	pid := util.GetConnPid(request.GetConnection())
-	//zlog.Debugf("create table: pid=%d, rule=%v\n", pid, req.Rule)
 
-	reply := c.doCreateTable(pid, req, request.GetConnection())
-	if err := util.SendMsg(pid, protocol.PROTOID_SC_TABLE_INFO, reply); err != nil {
-		zlog.Errorf("send msg failed, err=%s", err)
+	if err := c.doCreateTable(pid, req, request.GetConnection()); err != nil {
+		zlog.Errorf("create table failed, err:%s", err)
 		return
 	}
 }
 
-func (c *CreateTable) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) *protocol.ScScmjTableInfo {
-
+func (c *CreateTable) doCreateTable(pid player.PID, req *protocol.CsCreateScmjTable, conn ziface.IConnection) error {
 	master, err := PackTablePlayerDataFromPly(pid)
 	if err != nil {
-		return nil
+		return err
 	}
 	table, err := tablemgr.CreateTable(master, gamedefine.TABLE_TYPE_SCMJ, req)
 	if err != nil {
-		return nil
+		return err
 	}
 	ply := playermgr.GetPlayerByPid(pid)
 	if ply == nil {
-		return nil
+		return mjerror.ErrPlyNotFound
 	}
 	ply.SetTableID(table.GetID())
-	reply := table.PackToPBMsg().(*protocol.ScScmjTableInfo)
 	// 得到玩家已有对象
-	return reply
+	return nil
 }
 
 type JoinTable struct {
@@ -77,12 +73,12 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	data := request.GetData()
 	req := &protocol.CsJoinTable{}
 	if err := proto.Unmarshal(data, req); err != nil {
-		zlog.Errorf("unpack join table proto failed, err=%s\n", err)
+		zlog.Errorf("unpack join table proto failed, err:%s\n", err)
 		return
 	}
 	tb := tablemgr.GetTable(req.TableId)
 	if tb == nil {
-		zlog.Errorf("get table failed, id=%d", req.TableId)
+		zlog.Errorf("get table failed, id:%d", req.TableId)
 		return
 	}
 
@@ -91,8 +87,9 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	if err != nil {
 		return
 	}
-	_, err = tb.Join(plyData, gamedefine.TABLE_IDENTIY_PLAYER)
+	_, err = tb.PlayerJoin(plyData, gamedefine.TABLE_IDENTIY_PLAYER)
 	if err != nil {
+		zlog.Errorf("player join failed, err:%s", err)
 		return
 	}
 	ply := playermgr.GetPlayerByPid(pid)
@@ -100,12 +97,5 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 		return
 	}
 	ply.SetTableID(tb.GetID())
-
-	reply := tb.PackToPBMsg().(*protocol.ScScmjTableInfo)
-
-	if err = util.SendMsg(pid, protocol.PROTOID_SC_TABLE_INFO, reply); err != nil {
-		zlog.Errorf("send msg failed, err=%s", err)
-		return
-	}
 
 }

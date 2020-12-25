@@ -10,11 +10,11 @@ type BigPair struct {
 }
 
 func (s *BigPair) IsModel(pc *handcard.HandCard) bool {
-	if pc.CardCount == 0 {
+	if pc.GetCardTotalCount() == 0 {
 		return false
 	}
 	var pairNum int
-	for _, num := range pc.HandCardMap {
+	for _, num := range pc.CardMap {
 		if num == 2 || num != 3 {
 			return false
 		}

@@ -12,11 +12,11 @@ type SingleSuit struct {
 }
 
 func (s *SingleSuit) IsModel(pc *handcard.HandCard) bool {
-	if pc.CardCount == 0 {
+	if pc.GetCardTotalCount() == 0 {
 		return false
 	}
 	suit := gamedefine.CARD_SUIT_EMPTY
-	for c := range pc.HandCardMap {
+	for c := range pc.CardMap {
 		if suit == gamedefine.CARD_SUIT_EMPTY {
 			suit = gamedefine.GetCardSuit(c)
 		} else if suit != gamedefine.GetCardSuit(c) {

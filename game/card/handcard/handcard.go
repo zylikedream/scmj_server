@@ -3,32 +3,42 @@ package handcard
 import (
 	"fmt"
 	"zinx-mj/game/gamedefine"
+
+	"github.com/pkg/errors"
 )
 
 // 玩家手牌
 type HandCard struct {
-	HandCardMap  map[int]int      // 手牌map
+	CardMap      map[int]int      // 手牌map
+	cardCount    int              // 手牌数组
 	TingCard     map[int]struct{} // 以听的牌
 	DiscardCards []int            // 玩家已打出的手牌
 	DrawCards    []int            // 玩家已摸到的手牌
 	KongCards    map[int]struct{} // 玩家杠的牌
 	PongCards    map[int]struct{} // 玩家碰的牌
-	CardCount    int              // 玩家手牌数量
 	MaxCardCount int              // 玩家最大手牌数量
 }
 
-func New(handCards []int, maxCardCount int) *HandCard {
-	playerCard := &HandCard{
+func New(maxCardCount int) *HandCard {
+	p := &HandCard{
 		MaxCardCount: maxCardCount,
 	}
-	playerCard.HandCardMap = make(map[int]int, maxCardCount)
-	for _, card := range handCards {
-		playerCard.HandCardMap[card] += 1
-	}
-	playerCard.KongCards = make(map[int]struct{})
-	playerCard.PongCards = make(map[int]struct{})
 
-	return playerCard
+	p.KongCards = make(map[int]struct{})
+	p.PongCards = make(map[int]struct{})
+	p.CardMap = make(map[int]int)
+	return p
+}
+
+func (p *HandCard) SetHandCard(cards []int) error {
+	if len(cards) > p.MaxCardCount {
+		return errors.Errorf("more than max, cnt:%d, max:%d", len(cards), p.MaxCardCount)
+	}
+	for _, card := range cards {
+		p.CardMap[card] += 1
+	}
+	p.cardCount = len(cards)
+	return nil
 }
 
 /*
@@ -36,7 +46,7 @@ func New(handCards []int, maxCardCount int) *HandCard {
  * Create: zhangyi 2020-07-03 14:43:07
  */
 func (p *HandCard) GetCardNum(c int) int {
-	return p.HandCardMap[c]
+	return p.CardMap[c]
 }
 
 /*
@@ -60,8 +70,8 @@ func (p *HandCard) DecCard(c int, num int) error {
 		return fmt.Errorf("dec failed, card not enough, card=%d, num=%d, dec=%d",
 			c, p.GetCardNum(c), num)
 	}
-	p.HandCardMap[c] -= num
-	p.CardCount -= num
+	p.CardMap[c] -= num
+	p.cardCount -= num
 	return nil
 }
 
@@ -89,11 +99,11 @@ func (p *HandCard) GetLastDiscard() int {
  * Create: zhangyi 2020-07-03 15:02:36
  */
 func (p *HandCard) Draw(c int) error {
-	if p.CardCount >= p.MaxCardCount {
-		return fmt.Errorf("card too much, cardCount=%d, maxCardCount=%d", p.CardCount, p.MaxCardCount)
+	if p.cardCount >= p.MaxCardCount {
+		return fmt.Errorf("card too much, cardCount=%d, maxCardCount=%d", p.cardCount, p.MaxCardCount)
 	}
-	p.HandCardMap[c] += 1
-	p.CardCount++
+	p.CardMap[c] += 1
+	p.cardCount++
 	return nil
 }
 
@@ -104,7 +114,7 @@ func (p *HandCard) Draw(c int) error {
  */
 func (p *HandCard) GetCardBySuit(cardSuit int) []int {
 	var cards []int
-	for c, num := range p.HandCardMap {
+	for c, num := range p.CardMap {
 		if gamedefine.GetCardSuit(c) != cardSuit {
 			continue
 		}
@@ -180,12 +190,12 @@ func (p *HandCard) IsTingCard(c int) bool {
 }
 
 func (p *HandCard) GetCardTotalCount() int {
-	return p.CardCount
+	return p.cardCount
 }
 
 func (p *HandCard) GetHandCard() []int {
 	var cards []int
-	for card, count := range p.HandCardMap {
+	for card, count := range p.CardMap {
 		for i := 0; i < count; i++ {
 			cards = append(cards, card)
 		}
@@ -195,7 +205,7 @@ func (p *HandCard) GetHandCard() []int {
 
 // 推荐打的牌
 func (p *HandCard) GetRecommandCard() int {
-	for c := range p.HandCardMap {
+	for c := range p.CardMap {
 		return c
 	}
 	return gamedefine.CARD_MAX
@@ -204,7 +214,7 @@ func (p *HandCard) GetRecommandCard() int {
 // 生成哨兵手牌
 func (p *HandCard) GetGuardHandCard() []int {
 	var cards []int
-	for _, count := range p.HandCardMap {
+	for _, count := range p.CardMap {
 		for i := 0; i < count; i++ {
 			cards = append(cards, -1)
 		}
