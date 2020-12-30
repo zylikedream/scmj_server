@@ -27,7 +27,8 @@ func (s *Server) initRoute() error {
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_LOGIN), &handler.Login{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_CREATE_TABLE), &handler.CreateTable{})
 	s.core.AddRouter(uint32(protocol.PROTOID_CS_JOIN_TABLE), &handler.JoinTable{})
-	s.core.AddRouter(uint32(protocol.PROTOID_CS_PLAYER_OPERATE), &handler.PlayerOperate{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_DO_OPERATE), &handler.DoOperate{})
+	s.core.AddRouter(uint32(protocol.PROTOID_CS_PLAYER_READY), &handler.PlayerReady{})
 	return nil
 }
 

@@ -1,8 +1,11 @@
 package win
 
 import (
+	"sort"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
+
+	"github.com/aceld/zinx/zlog"
 )
 
 // 通用麻将胡牌规则
@@ -14,6 +17,13 @@ func NewGeneralWin() irule.IWin {
 }
 
 func (r *generalWin) CanWin(cards []int) bool {
+	defer func() {
+		if err := recover(); err != nil {
+			zlog.Errorf("win error, cards:%v", cards)
+			panic(err)
+		}
+	}()
+
 	cardLen := len(cards)
 	if cardLen == 0 {
 		return false
@@ -34,6 +44,7 @@ func (r *generalWin) CanWin(cards []int) bool {
 		return true
 	}
 	// 遍历所有可能的情况
+	sort.Ints(cards)
 	for _, c := range pairPos {
 		if isAllMeld(cards, &cardMap, c) {
 			return true
@@ -56,6 +67,9 @@ func isAllMeld(sortCards []int, cardMap *[gamedefine.CARD_MAX]int, pair int) boo
 			cardUsed[c] += 3
 		case cardLeft == 0: //没有牌跳过
 		default: // 只能做为顺子, 那么其他的牌数量必须大于等于它
+			if c+2 >= gamedefine.CARD_MAX { // 不可能能凑成顺子了
+				return false
+			}
 			if cardMap[c+1]-cardUsed[c+1] < cardLeft ||
 				cardMap[c+2]-cardUsed[c+2] < cardLeft {
 				return false

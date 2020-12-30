@@ -43,7 +43,7 @@ func GetNeighborCards(card int) []int {
 }
 
 func IsValidCard(card int) bool {
-	if card >= CARD_SUIT_MAX*CARD_BASE || card < CARD_SUIT_EMPTY {
+	if card >= CARD_SUIT_MAX*CARD_BASE || card <= CARD_SUIT_EMPTY {
 		return false
 	}
 	if card%CARD_BASE == 0 {

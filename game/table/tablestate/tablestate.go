@@ -18,6 +18,7 @@ type ITableForState interface {
 	GetTurnSeat() int
 	SetNextSeat(seat int)
 	GetNextTurnPlayer() *tableplayer.TablePlayer
+	IsGameStart() bool
 }
 
 const (
@@ -169,5 +170,4 @@ func (s *StateBase) SetStateMachine(sm IStateMachine) {
 }
 
 func (s *StateBase) Reset() {
-	return
 }

@@ -3,6 +3,8 @@ package ting
 import (
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
+
+	"github.com/aceld/zinx/zlog"
 )
 
 type generalTing struct {
@@ -20,6 +22,12 @@ func (g *generalTing) GetTingCard(cards []int, winRule irule.IWin) map[int]struc
 	tingCards := make(map[int]struct{})
 	// 循环将可能听的牌，带入到手牌，再用胡牌算法检测是否可胡
 	maybeCards := getMaybeTing(cards)
+	defer func() {
+		if err := recover(); err != nil {
+			zlog.Errorf("ting error: cards:%v maybeCards:%v", cards, maybeCards)
+			panic(err)
+		}
+	}()
 	for _, c := range maybeCards {
 		cards = append(cards, c)
 		if winRule.CanWin(cards) {

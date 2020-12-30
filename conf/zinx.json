@@ -1,3 +1,5 @@
 {
-  "TcpPort": 19191
+  "TcpPort": 19191,
+  "LogFile": "zinx.log",
+  "LogDir": "./log"
 }

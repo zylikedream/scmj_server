@@ -2,6 +2,7 @@ package tablestate
 
 import (
 	"zinx-mj/game/table/tableoperate"
+	"zinx-mj/network/protocol"
 	"zinx-mj/util"
 
 	"github.com/pkg/errors"
@@ -32,11 +33,14 @@ func (s *StateKongConcealed) OnEnter() error {
 			s.pids = append(s.pids, ply.Pid)
 		}
 	}
+	if err := s.distributeOperate(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (s *StateKongConcealed) OnUpdate() (IState, error) {
-	if len(s.pids) > 0 { // 等待外加的操作
+	if len(s.pids) > 0 { // 等待操作
 		return nil, nil
 	}
 
@@ -69,6 +73,21 @@ func (s *StateKongConcealed) OnPlyOperate(pid uint64, data tableoperate.OperateC
 	if pidIndex == -1 {
 		return errors.Errorf("find pid failed, pid=%d, validpids=%v", pid, s.pids)
 	}
+	if data.OpType != tableoperate.OPERATE_WIN {
+		return errors.Errorf("kong concealed can only do win operate, pid=%d, data=%v", pid, data)
+	}
 	util.RemoveElemWithoutOrder(pidIndex, &s.pids)
+	return nil
+}
+
+func (s *StateKongConcealed) distributeOperate() error {
+	opdata := &protocol.ScPlayerOperate{
+		OpType: []int32{tableoperate.OPERATE_WIN, tableoperate.OPERATE_PASS},
+	}
+	for _, pid := range s.pids {
+		if err := util.SendMsg(pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
+			return err
+		}
+	}
 	return nil
 }

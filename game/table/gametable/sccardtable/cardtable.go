@@ -2,6 +2,7 @@ package sccardtable
 
 import (
 	"math/rand"
+	"sort"
 	"time"
 	"zinx-mj/game/card/boardcard"
 	"zinx-mj/game/gamedefine"
@@ -170,11 +171,6 @@ func (s *ScCardTable) PlayerJoin(plyData *tableplayer.TablePlayerData, identity 
 	s.players = append(s.players, ply)
 
 	s.events.Add(EVENT_JOIN, ply.Pid) // 延迟触发，等待玩家加入房间后再通知
-
-	// 人满了就开游戏
-	if s.IsFull() {
-		s.events.Add(EVENT_GAME_START) // 延迟触发，需要等待玩家进入以后再通知开始游戏
-	}
 
 	tableData := s.PackToPBMsg()
 	if err := util.SendMsg(plyData.Pid, protocol.PROTOID_SC_TABLE_INFO, tableData); err != nil {
@@ -351,6 +347,10 @@ func (s *ScCardTable) GetDiscardRule() irule.IDiscard {
 	return s.discardRule
 }
 
+func (s *ScCardTable) GetTingRule() irule.ITing {
+	return s.tingRule
+}
+
 func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {
 	zlog.Infof("on ply operate, pid:%d, operate:%v", pid, operate)
 	ply := s.GetPlayerByPid(pid)
@@ -384,16 +384,20 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return err
 	}
 
-	pbOperate := &protocol.ScPlayerOperate{
+	pbOperate := &protocol.ScNotifyOperate{
 		Pid:    pid,
 		OpType: int32(operate.OpType),
-		Data: &protocol.PlayerOperateData{
+		Data: &protocol.OperateData{
 			Card: int32(operate.OpData.Card),
 		},
 	}
-	if err := s.broadCast(protocol.PROTOID_SC_PLAYER_OPERATE, pbOperate); err != nil {
+	if err := s.broadCast(protocol.PROTOID_SC_NOTIFY_OPERATE, pbOperate); err != nil {
 		return err
 	}
+
+	cards := ply.Hcard.GetHandCard()
+	sort.Ints(cards)
+	zlog.Infof("after operate, card:%v, op:%v", cards, operate)
 
 	return nil
 }
@@ -536,4 +540,37 @@ func (s *ScCardTable) AfterConcealedKong(pid uint64, c int) error {
 		ply.AddOperate(ops...)
 	}
 	return nil
+}
+
+func (s *ScCardTable) SetReady(pid uint64, ready bool) {
+	if s.IsGameStart() {
+		zlog.Warnf("can't set ready when game start")
+		return
+	}
+	ply := s.GetPlayerByPid(pid)
+	if ready == ply.Ready {
+		return
+	}
+	ply.Ready = ready
+	readData := &protocol.ScPlayerReady{
+		Pid:   pid,
+		Ready: ready,
+	}
+	_ = s.broadCast(protocol.PROTOID_SC_PLAYER_READY, readData)
+
+	if !ready {
+		return
+	}
+	// 检查游戏是否可以开始
+	if !s.IsFull() {
+		return
+	}
+
+	for _, ply := range s.players {
+		if !ply.Ready {
+			return
+		}
+	}
+	// 触发游戏开始
+	s.events.Add(EVENT_GAME_START)
 }

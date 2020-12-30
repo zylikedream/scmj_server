@@ -22,6 +22,9 @@ func (s *StateInit) OnEnter() error {
 }
 
 func (s *StateInit) OnUpdate() (IState, error) {
+	if !s.table.IsGameStart() {
+		return nil, nil
+	}
 	return s.stateMachine.GetState(TABLE_STATE_DRAW), nil
 }
 

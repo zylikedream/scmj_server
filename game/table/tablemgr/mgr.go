@@ -33,6 +33,7 @@ type ITable interface {
 	Update(delta time.Duration)
 
 	OnPlyOperate(pid uint64, data tableoperate.OperateCommand) error
+	SetReady(pid uint64, ready bool)
 }
 
 var tables map[uint32]ITable

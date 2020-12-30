@@ -3,6 +3,7 @@ package tablestate
 import (
 	"sort"
 	"zinx-mj/game/table/tableoperate"
+	"zinx-mj/network/protocol"
 	"zinx-mj/util"
 
 	"github.com/pkg/errors"
@@ -54,6 +55,10 @@ func (s *StateDiscard) OnEnter() error {
 			return s.acts[i].Op < s.acts[j].Op
 		})
 	}
+	// 通知玩家可以进行的操作
+	if err := s.distributeOperate(); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -74,18 +79,24 @@ func (s *StateDiscard) addActions(pid uint64, ops []int) {
 	}
 }
 
+func (s *StateDiscard) getOpLog(pid uint64) int {
+	op := tableoperate.OPERATE_EMPTY
+	for _, log := range s.oplog {
+		if log.Pid == pid {
+			op = log.Op
+			break
+		}
+	}
+	return op
+}
+
 func (s *StateDiscard) OnUpdate() (IState, error) {
 	if len(s.acts) > 0 {
 		return nil, nil
 	}
 	nextPly := s.table.GetNextTurnPlayer()
 	// 得到下一个玩家的操作, 如果没有默认就是抽牌
-	var op int
-	for _, log := range s.oplog {
-		if log.Pid == nextPly.Pid {
-			op = log.Op
-		}
-	}
+	op := s.getOpLog(nextPly.Pid)
 	nextState := getStateByOperate(op) // 得到对应状态
 	return s.stateMachine.GetState(nextState), nil
 }
@@ -118,16 +129,43 @@ func (s *StateDiscard) OnPlyOperate(pid uint64, data tableoperate.OperateCommand
 		return errors.Errorf("can't operate, act has no pid, act:%v, op:%v", curAct, data)
 	}
 
-	// 删除该pids
+	// 删除该pid
 	util.RemoveElemWithoutOrder(pidIndex, &curAct.Pids)
 
-	s.oplog = append(s.oplog, OpLog{
+	s.oplog = append(s.oplog, OpLog{ // 保存玩家的操作记录
 		Op:  data.OpType,
 		Pid: pid,
 	})
-	if len(curAct.Pids) == 0 { // 一牌不能多用, 直接返回
+	if len(curAct.Pids) > 0 { // 还需等待其他玩家
 		return nil
 	}
+	// 一牌不能多用, 直接返回
+	for _, pid := range curAct.Pids {
+		if s.getOpLog(pid) != tableoperate.OPERATE_PASS {
+			s.acts = s.acts[0:0] // 一牌不能多用
+			return nil
+		}
+	}
+	// 如果都是跳过, 那么过渡到下一个优先级的操作
+	s.acts = s.acts[1:]
+	if err := s.distributeOperate(); err != nil {
+		return err
+	}
+	return nil
+}
 
+func (s *StateDiscard) distributeOperate() error {
+	if len(s.acts) == 0 {
+		return nil
+	}
+	latestAct := s.acts[0]
+	opdata := &protocol.ScPlayerOperate{
+		OpType: []int32{int32(latestAct.Op), tableoperate.OPERATE_PASS},
+	}
+	for _, pid := range latestAct.Pids {
+		if err := util.SendMsg(pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
+			return err
+		}
+	}
 	return nil
 }

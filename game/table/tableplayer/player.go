@@ -9,12 +9,14 @@ import (
 	"zinx-mj/player"
 	"zinx-mj/util"
 
+	"github.com/aceld/zinx/zlog"
 	"github.com/pkg/errors"
 )
 
 type ITableForPlayer interface {
 	GetWinRule() irule.IWin
 	GetDiscardRule() irule.IDiscard
+	GetTingRule() irule.ITing
 }
 
 // 解耦TablePlayer和Player直接的关系
@@ -27,6 +29,7 @@ type TablePlayer struct {
 	TablePlayerData
 	Identity     uint32 // 身份
 	OnlineState  byte   // 是否在线
+	Ready        bool   // 是否准备
 	Hcard        *handcard.HandCard
 	validOperate []int
 	operateLog   []tableoperate.OperateCommand // 玩家的操作数据
@@ -120,6 +123,9 @@ func (t *TablePlayer) GetOperateWithDraw() []int {
 			break
 		}
 	}
+	if len(ops) > 0 {
+		ops = append(ops, tableoperate.OPERATE_PASS)
+	}
 	ops = append(ops, tableoperate.OPERATE_DISCARD) // 自己回合可以打牌
 	sort.Ints(ops)                                  // 按照优先级排序
 	return ops
@@ -166,6 +172,16 @@ func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
 	if err = t.Hcard.Discard(data.Card); err != nil {
 		return err
 	}
+	// 更新玩家听牌
+	defer func() {
+		if err := recover(); err != nil {
+			zlog.Errorf("get ting card error, Hcard:%v", *t.Hcard)
+			panic(err)
+		}
+	}()
+	tingRule := t.table.GetTingRule()
+	t.Hcard.TingCard = tingRule.GetTingCard(t.Hcard.GetHandCard(), t.table.GetWinRule())
+
 	return nil
 }
 

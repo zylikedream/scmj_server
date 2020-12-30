@@ -13,13 +13,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type PlayerOperate struct {
+type DoOperate struct {
 	znet.BaseRouter
 }
 
-func (c *PlayerOperate) Handle(request ziface.IRequest) {
+func (c *DoOperate) Handle(request ziface.IRequest) {
 	data := request.GetData()
-	req := &protocol.CsPlayerOperate{}
+	req := &protocol.CsDoOperate{}
 	if err := proto.Unmarshal(data, req); err != nil {
 		zlog.Errorf("unpack join table proto failed, err=%s\n", err)
 		return

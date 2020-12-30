@@ -99,3 +99,27 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 	ply.SetTableID(tb.GetID())
 
 }
+
+type PlayerReady struct {
+	znet.BaseRouter
+}
+
+func (c *PlayerReady) Handle(request ziface.IRequest) {
+	data := request.GetData()
+	req := &protocol.CsPlayerReady{}
+	if err := proto.Unmarshal(data, req); err != nil {
+		zlog.Errorf("unpack join table proto failed, err:%s\n", err)
+		return
+	}
+	pid := util.GetConnPid(request.GetConnection())
+	ply := playermgr.GetPlayerByPid(pid)
+	if ply == nil {
+		return
+	}
+	tb := tablemgr.GetTable(ply.TableID)
+	if tb == nil {
+		zlog.Errorf("get table failed, id:%d", ply.TableID)
+		return
+	}
+	tb.SetReady(pid, req.Ready)
+}
