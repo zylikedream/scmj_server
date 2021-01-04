@@ -3,6 +3,7 @@ package handcard
 import (
 	"fmt"
 	"zinx-mj/game/gamedefine"
+	"zinx-mj/util"
 
 	"github.com/pkg/errors"
 )
@@ -194,13 +195,7 @@ func (p *HandCard) GetCardTotalCount() int {
 }
 
 func (p *HandCard) GetHandCard() []int {
-	var cards []int
-	for card, count := range p.CardMap {
-		for i := 0; i < count; i++ {
-			cards = append(cards, card)
-		}
-	}
-	return cards
+	return util.IntMapToIntSlice(p.CardMap)
 }
 
 // 推荐打的牌

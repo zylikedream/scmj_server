@@ -26,7 +26,7 @@ type StateDiscard struct {
 	oplog []OpLog
 }
 
-var opOrder = []int{tableoperate.OPERATE_WIN, tableoperate.OPERATE_KONG_WIND, tableoperate.OPERATE_PONG}
+var opOrder = []int{tableoperate.OPERATE_WIN, tableoperate.OPERATE_KONG_RAIN, tableoperate.OPERATE_PONG}
 
 func NewStateDiscard(table ITableForState) *StateDiscard {
 	return &StateDiscard{

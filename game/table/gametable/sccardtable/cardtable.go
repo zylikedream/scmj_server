@@ -13,9 +13,12 @@ import (
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/rule/kong"
 	"zinx-mj/game/rule/pong"
+	"zinx-mj/game/rule/scorecardmodel"
+	"zinx-mj/game/rule/scorepoint"
 	"zinx-mj/game/rule/shuffle"
 	"zinx-mj/game/rule/ting"
 	"zinx-mj/game/rule/win"
+	"zinx-mj/game/rule/winmode"
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/game/table/tableplayer"
 	"zinx-mj/game/table/tablestate"
@@ -51,16 +54,20 @@ type ScCardTable struct {
 	board        *boardcard.BoardCard
 	stateMachine *tablestate.StateMachine
 	opTimers     []*OperateTimer
+	discards     []int // 桌子上打出的牌
 
-	boardRule   irule.IBoard
-	chowRule    irule.IChow
-	discardRule irule.IDiscard
-	kongRule    irule.IKong
-	pongRule    irule.IPong
-	shuffleRule irule.IShuffle
-	tingRule    irule.ITing
-	winRule     irule.IWin
-	dealRule    irule.IDeal
+	boardRule          irule.IBoard
+	chowRule           irule.IChow
+	discardRule        irule.IDiscard
+	kongRule           irule.IKong
+	pongRule           irule.IPong
+	shuffleRule        irule.IShuffle
+	tingRule           irule.ITing
+	winRule            irule.IWin
+	dealRule           irule.IDeal
+	scoreCardModelRule irule.IScoreCardModel
+	scorePointRule     irule.IScorePoint
+	WinModeRule        irule.IWinMode
 }
 
 func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTableData) (*ScCardTable, error) {
@@ -78,6 +85,9 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin()
 	t.dealRule = deal.NewGeneralDeal()
+	t.scoreCardModelRule = scorecardmodel.NewGeneralScoreCardModel()
+	t.scorePointRule = scorepoint.NewGeneralScorePoint()
+	t.WinModeRule = winmode.NewWinMode()
 
 	t.initEvent()
 	t.initStateMachine()
@@ -351,6 +361,14 @@ func (s *ScCardTable) GetTingRule() irule.ITing {
 	return s.tingRule
 }
 
+func (s *ScCardTable) GetScoreModelRule() irule.IScoreCardModel {
+	return s.scoreCardModelRule
+}
+
+func (s *ScCardTable) GetScorePointRule() irule.IScorePoint {
+	return s.scorePointRule
+}
+
 func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {
 	zlog.Infof("on ply operate, pid:%d, operate:%v", pid, operate)
 	ply := s.GetPlayerByPid(pid)
@@ -519,6 +537,7 @@ func (s *ScCardTable) SetNextSeat(seat int) {
 }
 
 func (s *ScCardTable) AfterDiscard(pid uint64, c int) error {
+	s.discards = append(s.discards, c)
 	for i := range s.players {
 		ply := s.players[i]
 		if ply.Pid == pid {
@@ -573,4 +592,8 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 	}
 	// 触发游戏开始
 	s.events.Add(EVENT_GAME_START)
+}
+
+func (s *ScCardTable) GetWinMode(pid uint64) int {
+	return s.WinModeRule.GetWinRule(pid, s.GetTurnPlayer().Pid, s.GetTurnPlayer().GetOperateLog(), s.discards)
 }

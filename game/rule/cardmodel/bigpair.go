@@ -1,20 +1,16 @@
 // 大对子
-package bigpair
+package cardmodel
 
 import (
-	"zinx-mj/game/card/handcard"
-	"zinx-mj/game/cardmodel"
+	"zinx-mj/game/rule/irule"
 )
 
 type BigPair struct {
 }
 
-func (s *BigPair) IsModel(pc *handcard.HandCard) bool {
-	if pc.GetCardTotalCount() == 0 {
-		return false
-	}
+func (s *BigPair) IsModel(data *irule.CardModel) bool { // 是否是某种牌型
 	var pairNum int
-	for _, num := range pc.CardMap {
+	for _, num := range data.HandCard {
 		if num == 2 || num != 3 {
 			return false
 		}
@@ -26,7 +22,7 @@ func (s *BigPair) IsModel(pc *handcard.HandCard) bool {
 }
 
 func (s *BigPair) GetModelType() int {
-	return cardmodel.CARD_MODEL_BIG_PAIR
+	return CARD_MODEL_BIG_PAIR
 }
 
 func NewBigPair() *BigPair {

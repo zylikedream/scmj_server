@@ -107,7 +107,7 @@ func getStateByOperate(op int) string {
 	switch op {
 	case tableoperate.OPERATE_WIN:
 		return TABLE_STATE_WIN
-	case tableoperate.OPERATE_KONG_WIND, tableoperate.OPERATE_KONG_EXPOSED:
+	case tableoperate.OPERATE_KONG_RAIN, tableoperate.OPERATE_KONG_EXPOSED:
 		return TABLE_STATE_KONG
 	case tableoperate.OPERATE_KONG_CONCEALED:
 		return TABLE_STATE_KONG_CONCEALED

@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"reflect"
-	"sort"
 	"zinx-mj/network/protocol"
 	"zinx-mj/player"
 	"zinx-mj/player/playermgr"
@@ -35,7 +34,6 @@ func IntMapToIntSlice(src map[int]int) []int {
 			slice = append(slice, k)
 		}
 	}
-	sort.Ints(slice)
 	return slice
 }
 

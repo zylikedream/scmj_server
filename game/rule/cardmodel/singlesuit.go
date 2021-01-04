@@ -1,34 +1,29 @@
 // 清一色
-package singlesuit
+package cardmodel
 
 import (
-	handcard "zinx-mj/game/card/handcard"
-	"zinx-mj/game/cardmodel"
-	"zinx-mj/game/cardmodel/icardmodel"
 	"zinx-mj/game/gamedefine"
+	"zinx-mj/game/rule/irule"
 )
 
 type SingleSuit struct {
 }
 
-func (s *SingleSuit) IsModel(pc *handcard.HandCard) bool {
-	if pc.GetCardTotalCount() == 0 {
-		return false
-	}
+func (s *SingleSuit) IsModel(data *irule.CardModel) bool { // 是否是某种牌型
 	suit := gamedefine.CARD_SUIT_EMPTY
-	for c := range pc.CardMap {
+	for c := range data.HandCard {
 		if suit == gamedefine.CARD_SUIT_EMPTY {
 			suit = gamedefine.GetCardSuit(c)
 		} else if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}
 	}
-	for c := range pc.KongCards {
+	for c := range data.KongCard {
 		if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}
 	}
-	for c := range pc.PongCards {
+	for c := range data.PongCard {
 		if suit != gamedefine.GetCardSuit(c) {
 			return false
 		}
@@ -37,9 +32,9 @@ func (s *SingleSuit) IsModel(pc *handcard.HandCard) bool {
 }
 
 func (s *SingleSuit) GetModelType() int {
-	return cardmodel.CARD_MODEL_SINGLE_SUIT
+	return CARD_MODEL_SINGLE_SUIT
 }
 
-func NewSingleSuit() icardmodel.ICardModel {
+func NewSingleSuit() *SingleSuit {
 	return &SingleSuit{}
 }

@@ -10,6 +10,7 @@ const (
 
 const CARD_BASE = 10
 const CARD_MAX = CARD_SUIT_MAX * CARD_BASE
+const CARD_EMPTY = 0
 
 /*
  * Descrp: 得到牌的花色
@@ -25,6 +26,10 @@ func GetCardSuit(cardNum int) int {
  */
 func GetCardRank(cardNum int) int {
 	return cardNum % CARD_BASE
+}
+
+func GetCardNumber(suit int, cardIndex int) int {
+	return suit*CARD_BASE + cardIndex
 }
 
 /*

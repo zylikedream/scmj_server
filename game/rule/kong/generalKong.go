@@ -12,7 +12,7 @@ func NewGeneralKong() irule.IKong {
 	return &generalKong{}
 }
 
-func (g *generalKong) Kong(pc *handcard.HandCard, card int) error {
+func (g *generalKong) RainKong(pc *handcard.HandCard, card int) error {
 	if err := pc.Kong(card); err != nil {
 		return err
 	}
