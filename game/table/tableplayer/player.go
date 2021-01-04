@@ -174,6 +174,7 @@ func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
 	case tableoperate.OPERATE_WIN:
 		err = t.win(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_KONG_CONCEALED:
+		err = t.kongConcealed(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_KONG_EXPOSED:
 	case tableoperate.OPERATE_KONG_RAIN:
 	case tableoperate.OPERATE_PONG:
@@ -242,6 +243,9 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 }
 
 func (t *TablePlayer) kongConcealed(opType int, data tableoperate.OperateData) error {
+	if err := t.Hcard.ConcealedKong(data.Card); err != nil {
+		return err
+	}
 	return nil
 }
 

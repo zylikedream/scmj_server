@@ -11,7 +11,6 @@ import (
 	"zinx-mj/game/rule/deal"
 	"zinx-mj/game/rule/discard"
 	"zinx-mj/game/rule/irule"
-	"zinx-mj/game/rule/kong"
 	"zinx-mj/game/rule/pong"
 	"zinx-mj/game/rule/scorecardmodel"
 	"zinx-mj/game/rule/scorepoint"
@@ -59,7 +58,6 @@ type ScCardTable struct {
 	boardRule          irule.IBoard
 	chowRule           irule.IChow
 	discardRule        irule.IDiscard
-	kongRule           irule.IKong
 	pongRule           irule.IPong
 	shuffleRule        irule.IShuffle
 	tingRule           irule.ITing
@@ -79,7 +77,6 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.boardRule = board.NewThreeSuitBoard() // 三坊
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
-	t.kongRule = kong.NewGeneralKong()
 	t.pongRule = pong.NewGeneralPong()
 	t.shuffleRule = shuffle.NewRandomShuffle()
 	t.tingRule = ting.NewGeneralRule()

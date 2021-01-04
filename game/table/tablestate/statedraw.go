@@ -55,6 +55,9 @@ func (s *StateDraw) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 	if !turnPly.IsOperateValid(data.OpType) {
 		return errors.Errorf("operate unvalid, op:%d validops:%v", data.OpType, turnPly.GetOperates())
 	}
+	if data.OpType == tableoperate.OPERATE_PASS { // 跳过pass操作
+		return nil
+	}
 	s.op = data.OpType
 	return nil
 }

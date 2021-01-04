@@ -10,6 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/aceld/zinx/ziface"
+	"github.com/aceld/zinx/zlog"
 )
 
 func RemoveSlice(sli []int, startPos int, length int) []int {
@@ -66,6 +67,7 @@ func SendMsg(pid player.PID, protoID protocol.PROTOID, msg proto.Message) error 
 	if err = conn.SendMsg(uint32(protoID), data); err != nil {
 		return fmt.Errorf("send msg failed, %w", err)
 	}
+	zlog.Debugf("send msg, pid:%d, id:%d msg:%v", pid, protoID, msg)
 	return nil
 }
 
