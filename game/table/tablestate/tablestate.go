@@ -67,21 +67,19 @@ func (sm *StateMachine) SetInitState(stateName string) error {
 	if state, ok := sm.states[stateName]; !ok {
 		return errors.Errorf("no state, name:%s", stateName)
 	} else {
-		sm.curState = state
-		if err := state.OnEnter(); err != nil {
-			return err
-		}
+		return sm.Next(state)
 	}
-	return nil
 }
 
 func (sm *StateMachine) Next(nextState IState) error {
+	curStateName := "Empty"
 	if sm.curState != nil {
 		if err := sm.curState.OnExit(); err != nil {
 			return fmt.Errorf("onExit state %s err, err=%s", sm.curState.GetName(), err)
 		}
+		curStateName = sm.curState.GetName()
 	}
-	zlog.Infof("change state: %s->%s", sm.curState.GetName(), nextState.GetName())
+	zlog.Infof("change state: %s->%s", curStateName, nextState.GetName())
 	sm.curState = nextState
 	if err := nextState.OnEnter(); err != nil {
 		return fmt.Errorf("onEnter state %s err, err=%s", nextState.GetName(), err)

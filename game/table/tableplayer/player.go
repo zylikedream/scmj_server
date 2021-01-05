@@ -42,12 +42,11 @@ type TablePlayer struct {
 	Identity     uint32     // 身份
 	OnlineState  byte       // 是否在线
 	Ready        bool       // 是否准备
-	Wins         []*WinInfo // 胡的牌
+	Wins         []*WinInfo // 胡牌信息
 	Hcard        *handcard.HandCard
 	validOperate []int
 	operateLog   []tableoperate.OperateCommand // 玩家的操作数据
 	table        ITableForPlayer
-	Points       []int
 }
 
 func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePlayer {
@@ -249,11 +248,13 @@ func (t *TablePlayer) kongConcealed(opType int, data tableoperate.OperateData) e
 	return nil
 }
 
-func (t *TablePlayer) IsWinned() bool {
+func (t *TablePlayer) IsWin() bool {
 	return len(t.Wins) > 0
 }
 
 func (t *TablePlayer) InitHandCard(cards []int, cardMax int) error {
+	t.Wins = t.Wins[0:0] // 清空信息
+	t.validOperate = t.validOperate[0:0]
 	t.Hcard = handcard.New(cardMax)
 	return t.Hcard.SetHandCard(cards)
 }
