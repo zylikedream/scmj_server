@@ -68,7 +68,7 @@ func (p *HandCard) Discard(c int) error {
  */
 func (p *HandCard) DecCard(c int, num int) error {
 	if p.GetCardNum(c) < num {
-		return fmt.Errorf("dec failed, card not enough, card=%d, num=%d, dec=%d",
+		return errors.Errorf("dec failed, card not enough, card=%d, num=%d, dec=%d",
 			c, p.GetCardNum(c), num)
 	}
 	p.CardMap[c] -= num
@@ -105,6 +105,7 @@ func (p *HandCard) Draw(c int) error {
 	}
 	p.CardMap[c] += 1
 	p.cardCount++
+	p.DrawCards = append(p.DrawCards, c)
 	return nil
 }
 

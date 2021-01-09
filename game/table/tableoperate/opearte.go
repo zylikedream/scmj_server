@@ -1,5 +1,6 @@
 package tableoperate
 
+// 按照优先级排序
 const (
 	OPERATE_EMPTY = iota // 空操作
 	OPERATE_WIN
@@ -8,8 +9,8 @@ const (
 	OPERATE_KONG_RAIN      // 下雨
 	OPERATE_PONG
 	OPERATE_CHOW
+	OPERATE_DISCARD // 出牌
 	OPERATE_PASS
-	OPERATE_DISCARD
 )
 
 type OperateCommand struct {

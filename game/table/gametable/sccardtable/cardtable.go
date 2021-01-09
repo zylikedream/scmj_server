@@ -34,13 +34,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type OperateTimer struct {
-	T    *time.Timer
-	Pid  uint64
-	ops  []int
-	card int
-}
-
 type ScCardTable struct {
 	id            uint32                     // 桌子ID
 	players       []*tableplayer.TablePlayer // 房间的玩家
@@ -55,8 +48,8 @@ type ScCardTable struct {
 	events       *ScTableEvent
 	board        *boardcard.BoardCard
 	stateMachine *tablestate.StateMachine
-	opTimers     []*OperateTimer
 	discards     []int // 桌子上打出的牌
+	secondTicker *time.Ticker
 
 	boardRule          irule.IBoard
 	chowRule           irule.IChow
@@ -91,6 +84,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.winModeRule = winmode.NewWinMode()
 	t.gameModeRule = gamemode.NewXzddGameMode()
 
+	t.secondTicker = time.NewTicker(time.Second)
 	t.initEvent()
 	t.initStateMachine()
 	_, err := t.PlayerJoin(master, gamedefine.TABLE_IDENTIY_MASTER|gamedefine.TABLE_IDENTIY_PLAYER)
@@ -201,11 +195,11 @@ func (s *ScCardTable) Quit(pid player.PID) error {
 }
 
 func (s *ScCardTable) IsGameStart() bool {
-	return !s.gameStartTime.IsZero() && s.gameStartTime.Sub(s.gameEndTime).Seconds() > 0
+	return !s.gameStartTime.IsZero() && s.gameStartTime.After(s.gameEndTime)
 }
 
 func (s *ScCardTable) IsGameEnd() bool {
-	return !s.gameEndTime.IsZero() && s.gameEndTime.Sub(s.gameStartTime).Seconds() > 0
+	return !s.gameEndTime.IsZero() && s.gameEndTime.After(s.gameStartTime)
 }
 
 func (s *ScCardTable) GetCreateTime() time.Time {
@@ -317,14 +311,15 @@ func (s *ScCardTable) Update(delta time.Duration) {
 	if s.IsGameEnd() { // 游戏结束后不再处理timer和状态机
 		return
 	}
+
 	// 更新玩家operate的timer
-	s.UpdateOperateTimer()
+	s.UpdateOperateTimer() // 超时后的默认动作有可能会更新状态机的数据，所以要先做
 
 	// 更新状态机
 	if err := s.stateMachine.Update(); err != nil {
 		zlog.Errorf("update state machine failed, err:%s", err)
 	}
-	// 处理所有的事件
+
 }
 
 func (s *ScCardTable) DrawCard() error {
@@ -474,85 +469,53 @@ func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCo
 	case tableoperate.OPERATE_KONG_CONCEALED: // 玩家可能会抢杠
 		err = s.AfterConcealedKong(pid, operate.OpData.Card)
 	}
-	// 添加定时器
-	// s.CancelOperateTimer(pid)
 	return err
 }
 
-// func (s *ScCardTable) AddOperateTimer(pid uint64, operate []int, card int) time.Duration {
-// 	for _, t := range s.opTimers {
-// 		if t.Pid == pid {
-// 			zlog.Errorf("add timer repeated, pid:%d, timers:%v", pid, s.opTimers)
-// 			return -1
-// 		}
-// 	}
-
-// 	timeout := s.GetOperateTimeout(pid, operate)
-// 	if timeout == 0 { // 0 表示永不超时
-// 		// 添加一个占位元素
-// 		s.opTimers = append(s.opTimers, &OperateTimer{Pid: pid})
-// 		return 0
-// 	}
-// 	tr := time.NewTimer(timeout)
-// 	s.opTimers = append(s.opTimers, &OperateTimer{
-// 		T:       tr,
-// 		Pid:     pid,
-// 		Operate: operate,
-// 	})
-// 	return timeout
-// }
-
-// func (s *ScCardTable) CancelOperateTimer(pid uint64) *time.Timer {
-// 	for i, t := range s.opTimers {
-// 		if t.Pid == pid {
-// 			t.T.Stop()
-// 			util.RemoveElemWithoutOrder(i, &s.opTimers) // 删除这个玩家的timer
-// 			return t.T
-// 		}
-// 	}
-// 	return nil
-// }
-
-// func (s *ScCardTable) GetTimeoutOperate(pid uint64, opType int) tableoperate.OperateCommand {
-// 	ply := s.GetPlayerByPid(pid)
-// 	var opCmd tableoperate.OperateCommand
-// 	switch opType {
-// 	case tableoperate.OPERATE_DISCARD:
-// 		opCmd = tableoperate.OperateCommand{
-// 			OpType: tableoperate.OPERATE_DISCARD,
-// 			OpData: tableoperate.OperateData{
-// 				Card: ply.Hcard.GetRecommandCard(),
-// 			},
-// 		}
-// 	default:
-// 		opCmd = tableoperate.OperateCommand{
-// 			OpType: tableoperate.OPERATE_PASS,
-// 		}
-// 	}
-// 	return opCmd
-// }
+func (s *ScCardTable) GetTimeoutOperate(pid uint64, ops []int) tableoperate.OperateCommand {
+	ply := s.GetPlayerByPid(pid)
+	for _, op := range ops {
+		switch op {
+		case tableoperate.OPERATE_DISCARD: // 如果有出牌操作默认就是出牌
+			return tableoperate.OperateCommand{
+				OpType: tableoperate.OPERATE_DISCARD,
+				OpData: tableoperate.OperateData{
+					Card: ply.Hcard.GetLastDraw(),
+				},
+			}
+		case tableoperate.OPERATE_PASS: // 如果有跳过操作 那么默认就是跳过
+			return tableoperate.OperateCommand{
+				OpType: tableoperate.OPERATE_PASS,
+			}
+		}
+	}
+	return tableoperate.OperateCommand{
+		OpType: tableoperate.OPERATE_PASS,
+	}
+}
 
 func (s *ScCardTable) UpdateOperateTimer() {
-	for _, t := range s.opTimers {
-		if t.T == nil { // 不超时的玩家
-			continue
-		}
-		if t.T.Stop() { // 定时器已经被关闭了
-			continue
-		}
-		select {
-		case <-t.T.C: // 玩家操作超时
-			// 强制替玩家操作
-			// if err := s.OnPlyOperate(t.Pid, s.GetTimeoutOperate(t.Pid, t.Operate.OpType)); err != nil {
-			// 	zlog.Errorf("ply operate failed, pid:%d, err:%s", t.Pid, err)
-			// }
-		default:
+	// 每秒更新一次
+	select {
+	case <-s.secondTicker.C:
+	default:
+		return
+	}
+	for _, ply := range s.players {
+		ops := ply.GetOperates()
+		if ply.IsOperateTimeOut(s.GetOperateTimeout(ply.Pid, ops)) {
+			zlog.Debugf("ply operate timeout, pid:%d ops:%v", ply.Pid, ops)
+			defaultOp := s.GetTimeoutOperate(ply.Pid, ops)
+			if err := s.OnPlyOperate(ply.Pid, defaultOp); err != nil {
+				zlog.Errorf("do operate failed, err:%s", err)
+			}
 		}
 	}
 }
 
-func (s *ScCardTable) GetOperateTimeout(pid uint64, operate tableoperate.OperateCommand) time.Duration {
-	return 10 * time.Second
+func (s *ScCardTable) GetOperateTimeout(pid uint64, ops []int) time.Duration {
+	//  return 10 * time.Second
+	return -1
 }
 
 func (s *ScCardTable) GetTurnSeat() int {
@@ -590,7 +553,7 @@ func (s *ScCardTable) AfterDiscard(pid uint64, c int) error {
 			continue
 		}
 		ops := ply.GetOperateWithDiscard(c)
-		ply.AddOperate(ops...)
+		ply.SetOperate(ops)
 	}
 	return nil
 }
@@ -602,7 +565,7 @@ func (s *ScCardTable) AfterConcealedKong(pid uint64, c int) error {
 			continue
 		}
 		ops := ply.GetOperateWithConcealedKong(c)
-		ply.AddOperate(ops...)
+		ply.SetOperate(ops)
 	}
 	return nil
 }

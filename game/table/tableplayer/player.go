@@ -2,6 +2,7 @@ package tableplayer
 
 import (
 	"sort"
+	"time"
 	"zinx-mj/game/card/handcard"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
@@ -39,14 +40,16 @@ type WinInfo struct {
 
 type TablePlayer struct {
 	TablePlayerData
-	Identity     uint32     // 身份
-	OnlineState  byte       // 是否在线
-	Ready        bool       // 是否准备
-	Wins         []*WinInfo // 胡牌信息
-	Hcard        *handcard.HandCard
-	validOperate []int
-	operateLog   []tableoperate.OperateCommand // 玩家的操作数据
-	table        ITableForPlayer
+	Identity         uint32     // 身份
+	OnlineState      byte       // 是否在线
+	Ready            bool       // 是否准备
+	Wins             []*WinInfo // 胡牌信息
+	Hcard            *handcard.HandCard
+	validOperate     []int
+	OperateStartTime time.Time                     //开始操作的时间
+	OperateTime      time.Time                     // 上一个操作的时间
+	operateLog       []tableoperate.OperateCommand // 玩家的操作数据
+	table            ITableForPlayer
 }
 
 func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePlayer {
@@ -69,9 +72,11 @@ func (t *TablePlayer) AddIdentity(identity uint32) uint32 {
 	return t.Identity
 }
 
-func (t *TablePlayer) AddOperate(ops ...int) {
-	t.validOperate = append(t.validOperate, ops...)
+func (t *TablePlayer) SetOperate(ops []int) {
+	t.validOperate = append([]int{}, ops...)
+	sort.Ints(t.validOperate) // 按照优先级排序
 	zlog.Debugf("ply add ops, pid:%d, addop:%v, all：%v", t.Pid, ops, t.validOperate)
+	t.OperateStartTime = time.Now() // 保存时间，用于超时判断
 }
 
 func (t *TablePlayer) GetOperates() []int {
@@ -85,12 +90,12 @@ func (t *TablePlayer) ClearOperates() {
 func (t *TablePlayer) clearOperate(op int) {
 	for i, vop := range t.validOperate {
 		if vop == op {
-			util.RemoveElemWithoutOrder(i, &t.validOperate)
+			// 把之前的操作都统一
+			t.validOperate = t.validOperate[i+1:]
 			break
 		}
 	}
 }
-
 func (t *TablePlayer) IsOperateValid(op int) bool {
 	for _, vop := range t.validOperate {
 		if vop == op {
@@ -263,6 +268,19 @@ func (t *TablePlayer) DrawCard(c int) error {
 	if err := t.Hcard.Draw(c); err != nil {
 		return err
 	}
-	t.AddOperate(t.GetOperateWithDraw()...)
+	t.SetOperate(t.GetOperateWithDraw())
 	return nil
+}
+
+func (t *TablePlayer) IsOperateTimeOut(timeout time.Duration) bool {
+	if timeout < 0 { // -1表示永不超时
+		return false
+	}
+	if len(t.validOperate) == 0 { // 没有操作
+		return false
+	}
+	if t.OperateTime.After(t.OperateStartTime) { // 中间有做过操作
+		return false
+	}
+	return time.Since(t.OperateStartTime) > timeout // 已超时
 }
