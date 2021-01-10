@@ -31,19 +31,28 @@ type TablePlayerData struct {
 }
 
 type WinInfo struct {
-	Pid     uint64
-	Card    int
-	Models  []int
-	WinMode int
-	Score   irule.ScorePoint // 赢的分数
+	Loser  uint64
+	Card   int
+	Models []int
+	Mode   int
+	Score  irule.ScorePoint // 赢的分数
+	Tm     time.Time
+}
+
+type LoseInfo struct {
+	Winner uint64
+	Card   int
+	Score  irule.ScorePoint
+	Mode   int
 }
 
 type TablePlayer struct {
 	TablePlayerData
-	Identity         uint32     // 身份
-	OnlineState      byte       // 是否在线
-	Ready            bool       // 是否准备
-	Wins             []*WinInfo // 胡牌信息
+	Identity         uint32      // 身份
+	OnlineState      byte        // 是否在线
+	Ready            bool        // 是否准备
+	Wins             []*WinInfo  // 胡牌信息
+	Loses            []*LoseInfo // 点炮信息
 	Hcard            *handcard.HandCard
 	validOperate     []int
 	OperateStartTime time.Time                     //开始操作的时间
@@ -90,8 +99,7 @@ func (t *TablePlayer) ClearOperates() {
 func (t *TablePlayer) clearOperate(op int) {
 	for i, vop := range t.validOperate {
 		if vop == op {
-			// 把之前的操作都统一
-			t.validOperate = t.validOperate[i+1:]
+			util.RemoveElemWithoutOrder(i, t.validOperate)
 			break
 		}
 	}
@@ -137,7 +145,7 @@ func (t *TablePlayer) GetOperateWithDraw() []int {
 		if num == 4 { // 暗杠
 			ops = append(ops, tableoperate.OPERATE_KONG_CONCEALED)
 			break
-		} else if _, ok := t.Hcard.PongCards[c]; ok { // 明杠
+		} else if t.Hcard.IsPonged(c) { // 明杠
 			ops = append(ops, tableoperate.OPERATE_KONG_EXPOSED)
 			break
 		}
@@ -215,11 +223,12 @@ func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
 func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	winInfo := &WinInfo{
 		Card: data.Card,
+		Tm:   time.Now(),
 	}
 	t.Wins = append(t.Wins, winInfo)
 	turnPly := t.table.GetTurnPlayer()
 	turnPid := turnPly.Pid
-	winInfo.Pid = turnPid
+	winInfo.Loser = turnPid
 
 	mcards := &irule.CardModel{
 		PongCard: t.Hcard.PongCards,
@@ -227,10 +236,16 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 		WinCard:  data.Card,
 		WiRule:   t.table.GetWinRule(),
 	}
-	handCardCopy := util.CopyIntMap(t.Hcard.CardMap)
-	if turnPid != t.Pid { // 别人点炮
-		handCardCopy[data.Card] += 1 // 加上点炮的牌
+
+	// 如果是自摸就把胡的牌从手牌中去掉
+	if t.Pid == t.table.GetTurnPlayer().Pid {
+		if err := t.Hcard.DecCard(data.Card, 1); err != nil {
+			return err
+		}
 	}
+	handCardCopy := util.CopyIntMap(t.Hcard.CardMap)
+	winInfo.Loser = turnPid
+	handCardCopy[data.Card] += 1 // 加上胡的牌
 	mcards.HandCard = handCardCopy
 	scoreModelRule := t.table.GetScoreModelRule()
 	models := scoreModelRule.ScoreCardModel(mcards)
@@ -240,7 +255,7 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	score := scorePointRule.ScorePoint(models, winMode, t.Hcard.KongCards) // 牌型番数
 	// 规则
 	winInfo.Models = models
-	winInfo.WinMode = winMode
+	winInfo.Mode = winMode
 	winInfo.Score = score
 
 	return nil
@@ -258,8 +273,6 @@ func (t *TablePlayer) IsWin() bool {
 }
 
 func (t *TablePlayer) InitHandCard(cards []int, cardMax int) error {
-	t.Wins = t.Wins[0:0] // 清空信息
-	t.validOperate = t.validOperate[0:0]
 	t.Hcard = handcard.New(cardMax)
 	return t.Hcard.SetHandCard(cards)
 }
@@ -283,4 +296,27 @@ func (t *TablePlayer) IsOperateTimeOut(timeout time.Duration) bool {
 		return false
 	}
 	return time.Since(t.OperateStartTime) > timeout // 已超时
+}
+
+func (t *TablePlayer) OnGameEnd() {
+	t.Wins = t.Wins[0:0] // 清空信息
+	t.validOperate = t.validOperate[0:0]
+	t.Ready = false
+}
+
+// 放炮
+func (t *TablePlayer) LoseByDiscard(score irule.ScorePoint, winner uint64, Card int, winMode int) {
+	t.Loses = append(t.Loses, &LoseInfo{
+		Winner: winner,
+		Card:   Card,
+		Score:  score,
+		Mode:   winMode,
+	})
+}
+
+func (t *TablePlayer) GetLastWinInfo() *WinInfo {
+	if len(t.Wins) == 0 {
+		return nil
+	}
+	return t.Wins[len(t.Wins)-1]
 }

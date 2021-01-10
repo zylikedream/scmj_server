@@ -1,6 +1,7 @@
 package scorepoint
 
 import (
+	"zinx-mj/game/card/handcard"
 	"zinx-mj/game/rule/cardmodel"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/rule/winmode"
@@ -13,7 +14,7 @@ func NewGeneralScorePoint() *generalScorePoint {
 	return &generalScorePoint{}
 }
 
-func (g *generalScorePoint) ScorePoint(models []int, winMode int, kongs map[int]struct{}) irule.ScorePoint {
+func (g *generalScorePoint) ScorePoint(models []int, winMode int, kongs []handcard.KongInfo) irule.ScorePoint {
 	cardModelScore := g.scoreCardModelPoint(models)
 	kongScore := g.scoreKongPoint(kongs)
 	ruleScore := g.scoreWinModePoint(winMode)
@@ -49,26 +50,25 @@ func (g *generalScorePoint) scoreCardModelPoint(models []int) irule.ScorePoint {
 	}
 }
 
-// 这里比较特殊，因为自摸可能是加底，所以需要传入之前的番数，并且返回的是倍数
 func (g *generalScorePoint) scoreWinModePoint(winMode int) irule.ScorePoint {
 	// 这儿自摸当做加底
 	score := irule.ScorePoint{}
 	switch winMode {
-	case winmode.WIN_MODE_GOD, winmode.WIN_MODE_DEVIL:
+	case winmode.WIN_SELF_DRAW_MODE_GOD, winmode.WIN_DISCARD_MODE_DEVIL:
 		score.Point = 4 // todo从规则取最大番数
-	case winmode.WIN_MODE_KONG_DRAW:
+	case winmode.WIN_SELF_DRAW_MODE_KONG:
 		score.Point = 1
-	case winmode.WIN_MODE_KONG_DISCARD, winmode.WIN_MODE_RUB_KONG:
+	case winmode.WIN_DISCARD_MODE_KONG, winmode.WIN_DISCARD_MODE_RUB_KONG:
 		score.Point = 1
-	case winmode.WIN_MODE_DRAW:
+	case winmode.WIN_SELF_DRAW_MODE_PLAIN:
 		score.Base = 1 // 自摸加底
-	case winmode.WIN_MODE_DISCARD:
+	case winmode.WIN_DISCARD_MODE_PLAIN:
 		score.Point = 0 // 平胡
 	}
 	return score
 }
 
-func (g *generalScorePoint) scoreKongPoint(kongs map[int]struct{}) irule.ScorePoint {
+func (g *generalScorePoint) scoreKongPoint(kongs []handcard.KongInfo) irule.ScorePoint {
 	return irule.ScorePoint{
 		Point: len(kongs),
 	}

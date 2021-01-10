@@ -8,6 +8,17 @@ import (
 	"github.com/pkg/errors"
 )
 
+type KongInfo struct {
+	Card  int
+	KType int
+}
+
+const (
+	KONG_TYPE_WIND      = iota // 刮风
+	KONG_TYPE_CONCEALED        // 暗杠
+	KONG_TYPE_EXPOSED          // 明杠
+)
+
 // 玩家手牌
 type HandCard struct {
 	CardMap      map[int]int      // 手牌map
@@ -15,8 +26,8 @@ type HandCard struct {
 	TingCard     map[int]struct{} // 以听的牌
 	DiscardCards []int            // 玩家已打出的手牌
 	DrawCards    []int            // 玩家已摸到的手牌
-	KongCards    map[int]struct{} // 玩家杠的牌
-	PongCards    map[int]struct{} // 玩家碰的牌
+	KongCards    []KongInfo       // 玩家杠的牌
+	PongCards    []int            // 玩家碰的牌
 	MaxCardCount int              // 玩家最大手牌数量
 }
 
@@ -25,8 +36,6 @@ func New(maxCardCount int) *HandCard {
 		MaxCardCount: maxCardCount,
 	}
 
-	p.KongCards = make(map[int]struct{})
-	p.PongCards = make(map[int]struct{})
 	p.CardMap = make(map[int]int)
 	return p
 }
@@ -135,8 +144,20 @@ func (p *HandCard) Kong(c int) error {
 	if err := p.DecCard(c, 3); err != nil {
 		return err
 	}
-	p.KongCards[c] = struct{}{}
+	p.KongCards = append(p.KongCards, KongInfo{
+		Card:  c,
+		KType: KONG_TYPE_WIND,
+	})
 	return nil
+}
+
+func (p *HandCard) IsKong(c int) bool {
+	for _, k := range p.KongCards {
+		if k.Card == c {
+			return true
+		}
+	}
+	return false
 }
 
 /*
@@ -144,22 +165,39 @@ func (p *HandCard) Kong(c int) error {
  * Create: zhangyi 2020-07-03 16:49:31
  */
 func (p *HandCard) ExposedKong(c int) error {
-	if _, ok := p.PongCards[c]; !ok {
+	if !p.IsPonged(c) {
 		return fmt.Errorf("can't exposed kong, card not pong, card=%d", c)
 	}
 	if err := p.DecCard(c, 1); err != nil {
 		return err
 	}
-	p.KongCards[c] = struct{}{}
-	delete(p.PongCards, c)
+	p.KongCards = append(p.KongCards, KongInfo{
+		Card:  c,
+		KType: KONG_TYPE_EXPOSED,
+	})
+	p.RemovePong(c)
 	return nil
 }
 
 func (p *HandCard) IsPonged(c int) bool {
-	if _, ok := p.PongCards[c]; ok {
-		return true
+	for _, p := range p.PongCards {
+		if c == p {
+			return true
+		}
 	}
 	return false
+}
+
+func (p *HandCard) RemovePong(c int) []int {
+	var newPong []int
+	for _, p := range p.PongCards {
+		if p == c {
+			continue
+		}
+		newPong = append(newPong, p)
+	}
+	p.PongCards = newPong
+	return newPong
 }
 
 /*
@@ -170,7 +208,10 @@ func (p *HandCard) ConcealedKong(c int) error {
 	if err := p.DecCard(c, 4); err != nil {
 		return err
 	}
-	p.KongCards[c] = struct{}{}
+	p.KongCards = append(p.KongCards, KongInfo{
+		Card:  c,
+		KType: KONG_TYPE_CONCEALED,
+	})
 	return nil
 }
 
@@ -182,7 +223,7 @@ func (p *HandCard) Pong(c int) error {
 	if err := p.DecCard(c, 2); err != nil {
 		return err
 	}
-	p.PongCards[c] = struct{}{}
+	p.PongCards = append(p.PongCards, c)
 	return nil
 }
 

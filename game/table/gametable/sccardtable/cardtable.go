@@ -76,6 +76,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
 	t.shuffleRule = shuffle.NewRandomShuffle()
+	// t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin()
 	t.dealRule = deal.NewGeneralDeal()
@@ -148,7 +149,7 @@ func (s *ScCardTable) onGameStart() error {
 
 	// 广播玩家手牌
 	err := s.broadCastRaw(protocol.PROTOID_SC_CARD_INFO, func(pid uint64, seat int) proto.Message {
-		return s.PackCardInfoForPlayer(pid)
+		return s.PackTableCardForPlayer(pid)
 	})
 	if err != nil {
 		return err
@@ -283,27 +284,46 @@ func (s *ScCardTable) initializeHandCard() {
 	}
 }
 
-func (s *ScCardTable) PackCardInfoForPlayer(pid uint64) *protocol.ScCardInfo {
+func (s *ScCardTable) PackTableCardForPlayer(pid uint64) *protocol.ScCardInfo {
 	msg := &protocol.ScCardInfo{}
 	msg.TableCard = &protocol.TableCardData{}
 	msg.TableCard.Total = int32(len(s.board.CardsTotal))
 	msg.TableCard.Left = int32(len(s.board.Cards))
 
 	for _, ply := range s.players {
-		var cards []int
-		if ply.Pid == pid {
-			cards = ply.Hcard.GetHandCard()
-		} else {
-			cards = ply.Hcard.GetGuardHandCard()
-		}
-		handCards := &protocol.HandCardData{}
-		for _, card := range cards {
-			handCards.Card = append(handCards.Card, int32(card))
-		}
-		msg.HandCard = append(msg.HandCard, handCards)
+		msg.CardInfo = append(msg.CardInfo, s.PackCardInfoForPlayer(ply, pid))
 	}
 
 	return msg
+}
+
+func (s *ScCardTable) PackCardInfoForPlayer(ply *tableplayer.TablePlayer, pid uint64) *protocol.PlayerCardInfo {
+	var cards []int
+	if ply.Pid == pid {
+		cards = ply.Hcard.GetHandCard()
+	} else {
+		cards = ply.Hcard.GetGuardHandCard()
+	}
+	playerCardInfo := &protocol.PlayerCardInfo{
+		HandCard: &protocol.HandCardData{},
+	}
+	for _, c := range cards {
+		playerCardInfo.HandCard.Holders = append(playerCardInfo.HandCard.Holders, int32(c))
+	}
+	playerCardInfo.HandCard.Draw = int32(ply.Hcard.GetLastDraw())
+	for _, k := range ply.Hcard.KongCards {
+		playerCardInfo.HandCard.Kong = append(playerCardInfo.HandCard.Kong, &protocol.KongInfo{
+			Card:     int32(k.Card),
+			KongType: int32(k.KType),
+		})
+	}
+	for _, p := range ply.Hcard.PongCards {
+		playerCardInfo.HandCard.Pong = append(playerCardInfo.HandCard.Pong, int32(p))
+	}
+	for _, d := range ply.Hcard.DiscardCards {
+		playerCardInfo.OutCard = append(playerCardInfo.OutCard, int32(d))
+	}
+	return playerCardInfo
 }
 
 func (s *ScCardTable) Update(delta time.Duration) {
@@ -443,11 +463,16 @@ func (s *ScCardTable) OnGameEnd() {
 	zlog.Info("game end")
 	// 玩家的状态重置为unready
 	for _, ply := range s.players {
-		ply.Ready = false
+		ply.OnGameEnd()
 	}
 	// 广播通知结算
 	msg := &protocol.ScGameEnd{
 		Games: int32(s.games),
+	}
+
+	for _, ply := range s.players {
+		summaryInfo := s.PackPlayerSummaryInfo(ply)
+		msg.Summary = append(msg.Summary, summaryInfo)
 	}
 	_ = s.broadCast(protocol.PROTOID_SC_GAME_END, msg)
 
@@ -455,6 +480,32 @@ func (s *ScCardTable) OnGameEnd() {
 		s.OnTableEnd()
 		return
 	}
+}
+
+func (s *ScCardTable) PackPlayerSummaryInfo(ply *tableplayer.TablePlayer) *protocol.ScSummaryInfo {
+	summaryInfo := &protocol.ScSummaryInfo{
+		WinInfo: []*protocol.ScWinInfo{},
+	}
+	summaryInfo.CardInfo = s.PackCardInfoForPlayer(ply, ply.Pid)
+	for _, win := range ply.Wins {
+		singleWin := &protocol.ScWinInfo{}
+		for _, m := range win.Models {
+			singleWin.CardModel = append(singleWin.CardModel, int32(m))
+		}
+
+		singleWin.WinMode = int32(win.Mode)
+
+		singleWin.WinCard = int32(win.Card)
+		summaryInfo.Score += int32(win.Score.GetFinalPoint())
+		singleWin.Point = int32(win.Score.Point)
+		singleWin.WinTime = win.Tm.UnixNano()
+		summaryInfo.WinInfo = append(summaryInfo.WinInfo, singleWin)
+	}
+
+	for _, lose := range ply.Loses {
+		summaryInfo.Score -= int32(lose.Score.GetFinalPoint())
+	}
+	return summaryInfo
 }
 
 func (s *ScCardTable) OnTableEnd() {
@@ -468,6 +519,8 @@ func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCo
 		err = s.AfterDiscard(pid, operate.OpData.Card)
 	case tableoperate.OPERATE_KONG_CONCEALED: // 玩家可能会抢杠
 		err = s.AfterConcealedKong(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_WIN:
+		err = s.AfterWin(pid, operate.OpData.Card)
 	}
 	return err
 }
@@ -566,6 +619,27 @@ func (s *ScCardTable) AfterConcealedKong(pid uint64, c int) error {
 		}
 		ops := ply.GetOperateWithConcealedKong(c)
 		ply.SetOperate(ops)
+	}
+	return nil
+}
+
+func (s *ScCardTable) AfterWin(pid uint64, c int) error {
+	ply := s.GetPlayerByPid(pid)
+	winInfo := ply.GetLastWinInfo()
+	if winInfo == nil {
+		return errors.Errorf("can't find win info, pid:%d", pid)
+	}
+	if winInfo.Loser != pid { // 点炮
+		loser := s.GetPlayerByPid(winInfo.Loser)
+		loser.LoseByDiscard(winInfo.Score, pid, winInfo.Card, winInfo.Mode)
+		return nil
+	}
+	// 自摸
+	for _, ply := range s.players {
+		if ply.Pid == pid {
+			continue
+		}
+		ply.LoseByDiscard(winInfo.Score, pid, winInfo.Card, winInfo.Mode)
 	}
 	return nil
 }

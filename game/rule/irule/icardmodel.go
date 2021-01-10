@@ -1,9 +1,11 @@
 package irule
 
+import "zinx-mj/game/card/handcard"
+
 type CardModel struct {
 	HandCard map[int]int
-	PongCard map[int]struct{}
-	KongCard map[int]struct{}
+	PongCard []int
+	KongCard []handcard.KongInfo
 	WinCard  int
 	WiRule   IWin
 }
