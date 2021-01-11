@@ -75,8 +75,8 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	t.shuffleRule = shuffle.NewRandomShuffle()
-	// t.shuffleRule = shuffle.NewSortShuffle()
+	// t.shuffleRule = shuffle.NewRandomShuffle()
+	t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin()
 	t.dealRule = deal.NewGeneralDeal()
@@ -427,9 +427,6 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return err
 	}
 
-	// 检测本局是否结束
-	s.CheckGameEnd()
-
 	pbOperate := &protocol.ScNotifyOperate{
 		Pid:    pid,
 		OpType: int32(operate.OpType),
@@ -444,6 +441,9 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 	cards := ply.Hcard.GetHandCard()
 	sort.Ints(cards)
 	zlog.Infof("after operate, card:%v, op:%v", cards, operate)
+
+	// 检测本局是否结束
+	s.CheckGameEnd()
 
 	return nil
 }
@@ -461,10 +461,7 @@ func (s *ScCardTable) CheckGameEnd() {
 func (s *ScCardTable) OnGameEnd() {
 	s.gameEndTime = time.Now()
 	zlog.Info("game end")
-	// 玩家的状态重置为unready
-	for _, ply := range s.players {
-		ply.OnGameEnd()
-	}
+
 	// 广播通知结算
 	msg := &protocol.ScGameEnd{
 		Games: int32(s.games),
@@ -476,6 +473,9 @@ func (s *ScCardTable) OnGameEnd() {
 	}
 	_ = s.broadCast(protocol.PROTOID_SC_GAME_END, msg)
 
+	for _, ply := range s.players {
+		ply.OnGameEnd()
+	}
 	if s.games >= int(s.data.GameTurn) {
 		s.OnTableEnd()
 		return
@@ -509,7 +509,7 @@ func (s *ScCardTable) PackPlayerSummaryInfo(ply *tableplayer.TablePlayer) *proto
 }
 
 func (s *ScCardTable) OnTableEnd() {
-
+	zlog.Info("table end")
 }
 
 func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {

@@ -28,6 +28,6 @@ func (s *BigSevenPair) GetModelType() int {
 	return CARD_MODEL_BIG_SEVEN_PAIR
 }
 
-func NewBigSevenPair() *SevenPair {
-	return &SevenPair{}
+func NewBigSevenPair() *BigSevenPair {
+	return &BigSevenPair{}
 }

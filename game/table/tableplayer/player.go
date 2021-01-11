@@ -225,7 +225,6 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 		Card: data.Card,
 		Tm:   time.Now(),
 	}
-	t.Wins = append(t.Wins, winInfo)
 	turnPly := t.table.GetTurnPlayer()
 	turnPid := turnPly.Pid
 	winInfo.Loser = turnPid
@@ -252,11 +251,12 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	winMode := t.table.GetWinMode(t.Pid)
 	// 计算番数，番数由三部分组成，一是基本牌型（七对，清一色等），二是番数规则（自摸，天胡，杠上花等） , 三是杠的番数
 	scorePointRule := t.table.GetScorePointRule()
-	score := scorePointRule.ScorePoint(models, winMode, t.Hcard.KongCards) // 牌型番数
-	// 规则
+	score := scorePointRule.ScorePoint(models, winMode, len(t.Hcard.KongCards), handCardCopy) // 牌型番数
 	winInfo.Models = models
 	winInfo.Mode = winMode
 	winInfo.Score = score
+	t.Wins = append(t.Wins, winInfo)
+	zlog.Infof("player win, pid:%d winInfo=%#v", t.Pid, *winInfo)
 
 	return nil
 }

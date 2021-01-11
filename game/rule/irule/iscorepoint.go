@@ -1,7 +1,5 @@
 package irule
 
-import "zinx-mj/game/card/handcard"
-
 // 计算牌型接口
 type ScorePoint struct {
 	Point int // 番数
@@ -13,5 +11,5 @@ func (s *ScorePoint) GetFinalPoint() int {
 }
 
 type IScorePoint interface {
-	ScorePoint(models []int, winMode int, kongCard []handcard.KongInfo) ScorePoint
+	ScorePoint(models []int, winMode int, kongs int, handcard map[int]int) ScorePoint
 }
