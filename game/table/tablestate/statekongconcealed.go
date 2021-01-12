@@ -2,7 +2,6 @@ package tablestate
 
 import (
 	"zinx-mj/game/table/tableoperate"
-	"zinx-mj/network/protocol"
 	"zinx-mj/util"
 
 	"github.com/pkg/errors"
@@ -32,9 +31,6 @@ func (s *StateKongConcealed) OnEnter() error {
 		if len(ops) > 0 {
 			s.pids = append(s.pids, ply.Pid)
 		}
-	}
-	if err := s.distributeOperate(); err != nil {
-		return err
 	}
 	return nil
 }
@@ -77,17 +73,5 @@ func (s *StateKongConcealed) OnPlyOperate(pid uint64, data tableoperate.OperateC
 		return errors.Errorf("kong concealed can only do win operate, pid=%d, data=%v", pid, data)
 	}
 	util.RemoveElemWithoutOrder(pidIndex, &s.pids)
-	return nil
-}
-
-func (s *StateKongConcealed) distributeOperate() error {
-	opdata := &protocol.ScPlayerOperate{
-		OpType: []int32{tableoperate.OPERATE_WIN, tableoperate.OPERATE_PASS},
-	}
-	for _, pid := range s.pids {
-		if err := util.SendMsg(pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
-			return err
-		}
-	}
 	return nil
 }

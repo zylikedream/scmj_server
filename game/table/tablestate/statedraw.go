@@ -2,8 +2,6 @@ package tablestate
 
 import (
 	"zinx-mj/game/table/tableoperate"
-	"zinx-mj/network/protocol"
-	"zinx-mj/util"
 
 	"github.com/pkg/errors"
 )
@@ -24,9 +22,6 @@ func NewStateDraw(table ITableForState) *StateDraw {
 func (s *StateDraw) OnEnter() error {
 	// 按照优先级排序
 	if err := s.table.DrawCard(); err != nil {
-		return err
-	}
-	if err := s.distributeOperate(); err != nil {
 		return err
 	}
 	return nil
@@ -64,20 +59,4 @@ func (s *StateDraw) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 
 func (s *StateDraw) Reset() {
 	s.op = tableoperate.OPERATE_EMPTY
-}
-
-func (s *StateDraw) distributeOperate() error {
-	turnPly := s.table.GetTurnPlayer()
-	ops := turnPly.GetOperates()
-	if len(ops) == 0 {
-		return nil
-	}
-	opdata := &protocol.ScPlayerOperate{}
-	for _, op := range ops {
-		opdata.OpType = append(opdata.OpType, int32(op))
-	}
-	if err := util.SendMsg(turnPly.Pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
-		return err
-	}
-	return nil
 }

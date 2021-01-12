@@ -18,7 +18,7 @@ func NewStateWin(table ITableForState) *StateWin {
 }
 
 func (s *StateWin) OnEnter() error {
-	s.table.SetNextSeat(s.table.GetTurnSeat() + 1) // 轮转到下一位
+	s.table.SetNextSeat(s.table.GetTurnSeat() + 1) // 默认轮转到下一位
 	return nil
 }
 

@@ -81,6 +81,9 @@ func (p *HandCard) DecCard(c int, num int) error {
 			c, p.GetCardNum(c), num)
 	}
 	p.CardMap[c] -= num
+	if p.CardMap[c] == 0 {
+		delete(p.CardMap, c)
+	}
 	p.cardCount -= num
 	return nil
 }

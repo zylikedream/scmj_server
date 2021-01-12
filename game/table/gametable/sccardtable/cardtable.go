@@ -71,12 +71,14 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 		createTime: time.Now(),
 		data:       data,
 	}
-	t.boardRule = board.NewThreeSuitBoard() // 三坊
+	// t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT, gamedefine.CARD_SUIT_CHARACTER) // 三坊
+	t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT) // 两坊
+	// t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO) // 一坊
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	// t.shuffleRule = shuffle.NewRandomShuffle()
-	t.shuffleRule = shuffle.NewSortShuffle()
+	t.shuffleRule = shuffle.NewRandomShuffle()
+	// t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin()
 	t.dealRule = deal.NewGeneralDeal()
@@ -352,6 +354,7 @@ func (s *ScCardTable) DrawCard() error {
 	if err = turnPly.DrawCard(card); err != nil {
 		return err
 	}
+
 	err = s.broadCastRaw(protocol.PROTOID_SC_DRAW_CARD, func(pid uint64, seat int) proto.Message {
 		msg := &protocol.ScDrawCard{Pid: pid, Card: -1}
 		if turnPly.Pid == pid { // 摸到的牌只会发给本人
@@ -360,6 +363,10 @@ func (s *ScCardTable) DrawCard() error {
 		return msg
 	})
 	if err != nil {
+		return err
+	}
+	// 下发玩家操作
+	if err = s.distributeOperate(turnPly); err != nil {
 		return err
 	}
 	return nil
@@ -607,6 +614,9 @@ func (s *ScCardTable) AfterDiscard(pid uint64, c int) error {
 		}
 		ops := ply.GetOperateWithDiscard(c)
 		ply.SetOperate(ops)
+		if err := s.distributeOperate(ply); err != nil {
+			return err
+		} // 下发玩家可以做的操作
 	}
 	return nil
 }
@@ -619,6 +629,10 @@ func (s *ScCardTable) AfterConcealedKong(pid uint64, c int) error {
 		}
 		ops := ply.GetOperateWithConcealedKong(c)
 		ply.SetOperate(ops)
+		if err := s.distributeOperate(ply); err != nil {
+			return err
+		} // 下发玩家可以做的操作
+
 	}
 	return nil
 }
@@ -679,4 +693,19 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 
 func (s *ScCardTable) GetWinMode(pid uint64) int {
 	return s.winModeRule.GetWinRule(pid, s.GetTurnPlayer().Pid, s.GetTurnPlayer().GetOperateLog(), s.discards)
+}
+
+func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {
+	ops := ply.GetOperates()
+	if len(ops) == 0 {
+		return nil
+	}
+	opdata := &protocol.ScPlayerOperate{}
+	for _, op := range ops {
+		opdata.OpType = append(opdata.OpType, int32(op))
+	}
+	if err := util.SendMsg(ply.Pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
+		return err
+	}
+	return nil
 }

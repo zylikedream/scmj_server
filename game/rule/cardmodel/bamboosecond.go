@@ -24,7 +24,7 @@ func (s *BambooSecond) IsModel(data *irule.CardModel) bool { // 是否是某种�
 	cardCopy := util.CopyIntMap(data.HandCard)
 	cardCopy[bamboo1] -= 1
 	cardCopy[bamboo2] -= 1
-	cardCopy[bamboo2] -= 1
+	cardCopy[bamboo3] -= 1
 
 	return data.WiRule.CanWin(util.IntMapToIntSlice(cardCopy))
 }

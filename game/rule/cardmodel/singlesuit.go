@@ -18,13 +18,13 @@ func (s *SingleSuit) IsModel(data *irule.CardModel) bool { // 是否是某种牌
 			return false
 		}
 	}
-	for c := range data.KongCard {
-		if suit != gamedefine.GetCardSuit(c) {
+	for _, k := range data.KongCard {
+		if suit != gamedefine.GetCardSuit(k.Card) {
 			return false
 		}
 	}
-	for c := range data.PongCard {
-		if suit != gamedefine.GetCardSuit(c) {
+	for _, p := range data.PongCard {
+		if suit != gamedefine.GetCardSuit(p) {
 			return false
 		}
 	}
