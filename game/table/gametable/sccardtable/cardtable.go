@@ -40,9 +40,10 @@ type ScCardTable struct {
 	createTime    time.Time
 	gameStartTime time.Time
 	gameEndTime   time.Time
-	games         int // 游戏局数
-	turnSeat      int // 当前回合的玩家
-	nextTurnSeat  int // 当前操作的玩家
+	games         int    // 游戏局数
+	turnSeat      int    // 当前回合的玩家
+	nextTurnSeat  int    // 当前操作的玩家
+	master        uint64 // 庄家
 
 	data         *ScTableData
 	events       *ScTableEvent
@@ -51,18 +52,18 @@ type ScCardTable struct {
 	discards     []int // 桌子上打出的牌
 	secondTicker *time.Ticker
 
-	boardRule          irule.IBoard
-	chowRule           irule.IChow
-	discardRule        irule.IDiscard
-	pongRule           irule.IPong
-	shuffleRule        irule.IShuffle
-	tingRule           irule.ITing
-	winRule            irule.IWin
-	dealRule           irule.IDeal
-	scoreCardModelRule irule.IScoreCardModel
-	scorePointRule     irule.IScorePoint
-	winModeRule        irule.IWinMode
-	gameModeRule       irule.IGameMode
+	boardRule      irule.IBoard
+	chowRule       irule.IChow
+	discardRule    irule.IDiscard
+	pongRule       irule.IPong
+	shuffleRule    irule.IShuffle
+	tingRule       irule.ITing
+	winRule        irule.IWin
+	dealRule       irule.IDeal
+	scoreCardModel irule.IScoreCardModel
+	scorePointRule irule.IScorePoint
+	winModeModel   irule.IWinModeModel
+	gameModeRule   irule.IGameMode
 }
 
 func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTableData) (*ScCardTable, error) {
@@ -77,20 +78,20 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	t.shuffleRule = shuffle.NewRandomShuffle()
-	// t.shuffleRule = shuffle.NewSortShuffle()
+	// t.shuffleRule = shuffle.NewRandomShuffle()
+	t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin()
 	t.dealRule = deal.NewGeneralDeal()
-	t.scoreCardModelRule = scorecardmodel.NewGeneralScoreCardModel()
+	t.scoreCardModel = scorecardmodel.NewGeneralScoreCardModel()
 	t.scorePointRule = scorepoint.NewGeneralScorePoint()
-	t.winModeRule = winmode.NewWinMode()
+	t.winModeModel = winmode.NewWinModeModel()
 	t.gameModeRule = gamemode.NewXzddGameMode()
 
 	t.secondTicker = time.NewTicker(time.Second)
 	t.initEvent()
 	t.initStateMachine()
-	_, err := t.PlayerJoin(master, gamedefine.TABLE_IDENTIY_MASTER|gamedefine.TABLE_IDENTIY_PLAYER)
+	_, err := t.PlayerJoin(master, gamedefine.TABLE_IDENTIY_OWNER|gamedefine.TABLE_IDENTIY_PLAYER)
 	if err != nil {
 		return t, err
 	}
@@ -121,12 +122,19 @@ func (s *ScCardTable) GetPlayerSeat(pid uint64) int {
 	return len(s.players)
 }
 
+func (s *ScCardTable) initMaster() {
+	s.nextTurnSeat = rand.Intn(len(s.players)) // 随机庄家
+	master := s.GetPlayerBySeat(s.nextTurnSeat)
+	master.AddIdentity(gamedefine.TABLE_IDENTIY_DEALER)
+	s.master = master.Pid
+}
+
 func (s *ScCardTable) onGameStart() error {
 	// 初始化玩家手牌
 	s.games++ // 增加游戏局数
 
 	// 初始化庄家
-	s.nextTurnSeat = rand.Intn(len(s.players)) // 随机庄家
+	s.initMaster()
 	s.UpdateTurnSeat()
 
 	// 稍后广播玩家手牌
@@ -393,8 +401,12 @@ func (s *ScCardTable) GetTingRule() irule.ITing {
 	return s.tingRule
 }
 
-func (s *ScCardTable) GetScoreModelRule() irule.IScoreCardModel {
-	return s.scoreCardModelRule
+func (s *ScCardTable) GetScoreModel() irule.IScoreCardModel {
+	return s.scoreCardModel
+}
+
+func (s *ScCardTable) GetWinModeModel() irule.IWinModeModel {
+	return s.winModeModel
 }
 
 func (s *ScCardTable) GetScorePointRule() irule.IScorePoint {
@@ -435,10 +447,12 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 	}
 
 	pbOperate := &protocol.ScNotifyOperate{
-		Pid:    pid,
-		OpType: int32(operate.OpType),
-		Data: &protocol.OperateData{
-			Card: int32(operate.OpData.Card),
+		Pid: pid,
+		OpCmd: &protocol.OperateCommand{
+			OpType: int32(operate.OpType),
+			Data: &protocol.OperateData{
+				Card: int32(operate.OpData.Card),
+			},
 		},
 	}
 	if err := s.broadCast(protocol.PROTOID_SC_NOTIFY_OPERATE, pbOperate); err != nil {
@@ -483,6 +497,11 @@ func (s *ScCardTable) OnGameEnd() {
 	for _, ply := range s.players {
 		ply.OnGameEnd()
 	}
+	// 清除庄家信息
+	master := s.GetPlayerByPid(s.master)
+	master.RemoveIdentity(gamedefine.TABLE_IDENTIY_DEALER)
+	s.master = 0
+
 	if s.games >= int(s.data.GameTurn) {
 		s.OnTableEnd()
 		return
@@ -532,26 +551,16 @@ func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCo
 	return err
 }
 
-func (s *ScCardTable) GetTimeoutOperate(pid uint64, ops []int) tableoperate.OperateCommand {
-	ply := s.GetPlayerByPid(pid)
+func (s *ScCardTable) GetTimeoutOperate(pid uint64, ops []tableoperate.OperateCommand) tableoperate.OperateCommand {
 	for _, op := range ops {
-		switch op {
+		switch op.OpType {
 		case tableoperate.OPERATE_DISCARD: // 如果有出牌操作默认就是出牌
-			return tableoperate.OperateCommand{
-				OpType: tableoperate.OPERATE_DISCARD,
-				OpData: tableoperate.OperateData{
-					Card: ply.Hcard.GetLastDraw(),
-				},
-			}
+			return op
 		case tableoperate.OPERATE_PASS: // 如果有跳过操作 那么默认就是跳过
-			return tableoperate.OperateCommand{
-				OpType: tableoperate.OPERATE_PASS,
-			}
+			return op
 		}
 	}
-	return tableoperate.OperateCommand{
-		OpType: tableoperate.OPERATE_PASS,
-	}
+	return tableoperate.NewOperatePass()
 }
 
 func (s *ScCardTable) UpdateOperateTimer() {
@@ -573,7 +582,7 @@ func (s *ScCardTable) UpdateOperateTimer() {
 	}
 }
 
-func (s *ScCardTable) GetOperateTimeout(pid uint64, ops []int) time.Duration {
+func (s *ScCardTable) GetOperateTimeout(pid uint64, ops []tableoperate.OperateCommand) time.Duration {
 	//  return 10 * time.Second
 	return -1
 }
@@ -692,7 +701,7 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 }
 
 func (s *ScCardTable) GetWinMode(pid uint64) int {
-	return s.winModeRule.GetWinRule(pid, s.GetTurnPlayer().Pid, s.GetTurnPlayer().GetOperateLog(), s.discards)
+	return s.winModeModel.GetWinMode(pid, s.GetTurnPlayer().Pid, s.GetTurnPlayer().GetOperateLog(), s.discards)
 }
 
 func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {
@@ -702,7 +711,12 @@ func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {
 	}
 	opdata := &protocol.ScPlayerOperate{}
 	for _, op := range ops {
-		opdata.OpType = append(opdata.OpType, int32(op))
+		opdata.OpCmd = append(opdata.OpCmd, &protocol.OperateCommand{
+			OpType: int32(op.OpType),
+			Data: &protocol.OperateData{
+				Card: int32(op.OpData.Card),
+			},
+		})
 	}
 	if err := util.SendMsg(ply.Pid, protocol.PROTOID_SC_PLAYER_OPERATE, opdata); err != nil {
 		return err

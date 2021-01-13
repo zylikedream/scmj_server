@@ -22,7 +22,83 @@ type OperateData struct {
 	Card int
 }
 
-type PlyOperate struct {
-	Pid    uint64
-	OpType int
+func NewOperateWin(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_WIN,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperateKongConcealed(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_KONG_CONCEALED,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperateKongExposed(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_KONG_EXPOSED,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperateKongRain(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_KONG_RAIN,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperatePong(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_PONG,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperateChow(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_CHOW,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperateDiscard(card int) OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_DISCARD,
+		OpData: OperateData{
+			Card: card,
+		},
+	}
+}
+
+func NewOperatePass() OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_PASS,
+		OpData: OperateData{
+			Card: 0,
+		},
+	}
+}
+
+func NewOperateEmpty() OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_EMPTY,
+		OpData: OperateData{
+			Card: 0,
+		},
+	}
 }

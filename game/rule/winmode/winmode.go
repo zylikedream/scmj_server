@@ -17,16 +17,16 @@ const (
 	WIN_DISCARD_MODE_MAX
 )
 
-type WinMode struct {
+type WinModeModel struct {
 }
 
-func NewWinMode() *WinMode {
-	return &WinMode{}
+func NewWinModeModel() *WinModeModel {
+	return &WinModeModel{}
 }
 
-func (w *WinMode) GetWinRule(winPid uint64, turnPid uint64, turnOps []tableoperate.OperateCommand, discards []int) int {
+func (w *WinModeModel) GetWinMode(winPid uint64, turnPid uint64, turnOps []tableoperate.OperateCommand, discards []int) int {
 	if winPid == turnPid { // 自摸
-		if len(discards) == 0 {
+		if len(discards) == 0 && len(turnOps) == 0 {
 			return WIN_DRAW_MODE_GOD
 		} else {
 			lastOp := turnOps[len(turnOps)-1].OpType

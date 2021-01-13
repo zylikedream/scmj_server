@@ -33,9 +33,9 @@ func (c *DoOperate) Handle(request ziface.IRequest) {
 
 	tb := tablemgr.GetTable(ply.TableID)
 	plyOperate := tableoperate.OperateCommand{
-		OpType: int(req.OpType),
+		OpType: int(req.OpCmd.OpType),
 		OpData: tableoperate.OperateData{
-			Card: int(req.Data.Card),
+			Card: int(req.OpCmd.Data.Card),
 		},
 	}
 	if err := tb.OnPlyOperate(pid, plyOperate); err != nil {

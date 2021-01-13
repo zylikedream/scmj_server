@@ -1,8 +1,9 @@
 package gamedefine
 
 const (
-	TABLE_IDENTIY_MASTER  = 1 << iota // 房主
+	TABLE_IDENTIY_OWNER   = 1 << iota // 房主
 	TABLE_IDENTIY_PLAYER              // 玩家
+	TABLE_IDENTIY_DEALER              // 庄家
 	TABLE_IDENTIY_WATCHER             // 观看者
 )
 

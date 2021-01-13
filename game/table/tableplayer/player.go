@@ -19,7 +19,8 @@ type ITableForPlayer interface {
 	GetDiscardRule() irule.IDiscard
 	GetTingRule() irule.ITing
 	GetTurnPlayer() *TablePlayer
-	GetScoreModelRule() irule.IScoreCardModel
+	GetScoreModel() irule.IScoreCardModel
+	GetWinModeModel() irule.IWinModeModel
 	GetScorePointRule() irule.IScorePoint
 	GetWinMode(pid uint64) int
 }
@@ -54,7 +55,7 @@ type TablePlayer struct {
 	Wins             []*WinInfo  // 胡牌信息
 	Loses            []*LoseInfo // 点炮信息
 	Hcard            *handcard.HandCard
-	validOperate     []int
+	operates         []tableoperate.OperateCommand // 玩家可以指向的操作
 	OperateStartTime time.Time                     //开始操作的时间
 	OperateTime      time.Time                     // 上一个操作的时间
 	operateLog       []tableoperate.OperateCommand // 玩家的操作数据
@@ -81,32 +82,44 @@ func (t *TablePlayer) AddIdentity(identity uint32) uint32 {
 	return t.Identity
 }
 
-func (t *TablePlayer) SetOperate(ops []int) {
-	t.validOperate = append([]int{}, ops...)
-	sort.Ints(t.validOperate) // 按照优先级排序
-	zlog.Debugf("ply add ops, pid:%d, addop:%v, all：%v", t.Pid, ops, t.validOperate)
+func (t *TablePlayer) RemoveIdentity(identity uint32) uint32 {
+	t.Identity &^= identity // 位清空
+	return t.Identity
+}
+
+func (t *TablePlayer) SetOperate(ops []tableoperate.OperateCommand) {
+	t.operates = append([]tableoperate.OperateCommand{}, ops...)
+	sort.Slice(t.operates, func(i, j int) bool {
+		return t.operates[i].OpType < t.operates[j].OpType
+	}) // 按照优先级排序
+	zlog.Debugf("ply add ops, pid:%d, addop:%v, all：%v", t.Pid, ops, t.operates)
 	t.OperateStartTime = time.Now() // 保存时间，用于超时判断
 }
 
-func (t *TablePlayer) GetOperates() []int {
-	return t.validOperate
+func (t *TablePlayer) GetOperates() []tableoperate.OperateCommand {
+	return t.operates
 }
 
 func (t *TablePlayer) ClearOperates() {
-	t.validOperate = t.validOperate[0:0]
+	t.operates = t.operates[0:0]
 }
 
-func (t *TablePlayer) clearOperate(op int) {
-	for i, vop := range t.validOperate {
-		if vop == op {
-			util.RemoveElemWithoutOrder(i, t.validOperate)
-			break
+func (t *TablePlayer) clearOperate(op tableoperate.OperateCommand) {
+	switch op.OpType {
+	case tableoperate.OPERATE_PASS: // 跳过操作除了出牌都会清除掉(出牌不可以跳过)
+		for _, op := range t.operates {
+			if op.OpType == tableoperate.OPERATE_DISCARD {
+				t.SetOperate([]tableoperate.OperateCommand{op})
+				break
+			}
 		}
+	default:
+		t.ClearOperates() // 清除所有其他操作
 	}
 }
 func (t *TablePlayer) IsOperateValid(op int) bool {
-	for _, vop := range t.validOperate {
-		if vop == op {
+	for _, vop := range t.operates {
+		if vop.OpType == op {
 			return true
 		}
 	}
@@ -114,58 +127,54 @@ func (t *TablePlayer) IsOperateValid(op int) bool {
 }
 
 // 出牌后的操作
-func (t *TablePlayer) GetOperateWithDiscard(c int) []int {
-	var ops []int
+func (t *TablePlayer) GetOperateWithDiscard(c int) []tableoperate.OperateCommand {
+	var ops []tableoperate.OperateCommand
 	if t.Hcard.IsTingCard(c) {
-		ops = append(ops, tableoperate.OPERATE_WIN)
+		ops = append(ops, tableoperate.NewOperateWin(c))
 	}
 
 	if t.Hcard.GetCardNum(c) == 3 {
-		ops = append(ops, tableoperate.OPERATE_KONG_RAIN)
+		ops = append(ops, tableoperate.NewOperateKongRain(c))
 	}
 	if t.Hcard.GetCardNum(c) >= 2 {
-		ops = append(ops, tableoperate.OPERATE_PONG)
+		ops = append(ops, tableoperate.NewOperatePong(c))
 	}
 	if len(ops) > 0 {
-		ops = append(ops, tableoperate.OPERATE_PASS)
+		ops = append(ops, tableoperate.NewOperatePass())
 	}
-	sort.Ints(ops) // 按照由下级排序
 	return ops
 
 }
 
 // 摸牌可以做的操作
 // 自己回合操作没有跳过选项, 必须要做出操作
-func (t *TablePlayer) GetOperateWithDraw() []int {
-	var ops []int
+func (t *TablePlayer) GetOperateWithDraw(drawCard int) []tableoperate.OperateCommand {
+	var ops []tableoperate.OperateCommand
 	if t.table.GetWinRule().CanWin(t.Hcard.GetHandCard()) {
-		ops = append(ops, tableoperate.OPERATE_WIN)
+		ops = append(ops, tableoperate.NewOperateWin(drawCard))
 	}
 	for c, num := range t.Hcard.CardMap {
 		if num == 4 { // 暗杠
-			ops = append(ops, tableoperate.OPERATE_KONG_CONCEALED)
-			break
+			ops = append(ops, tableoperate.NewOperateKongConcealed(c))
 		} else if t.Hcard.IsPonged(c) { // 明杠
-			ops = append(ops, tableoperate.OPERATE_KONG_EXPOSED)
-			break
+			ops = append(ops, tableoperate.NewOperateKongExposed(c))
 		}
 	}
 	if len(ops) > 0 {
-		ops = append(ops, tableoperate.OPERATE_PASS)
+		ops = append(ops, tableoperate.NewOperatePass())
 	}
-	ops = append(ops, tableoperate.OPERATE_DISCARD) // 自己回合可以打牌
-	sort.Ints(ops)                                  // 按照优先级排序
+	ops = append(ops, tableoperate.NewOperateDiscard(drawCard)) // 自己回合可以打牌
 	return ops
 }
 
 // 其他人明杠可以做的操作
-func (t *TablePlayer) GetOperateWithConcealedKong(c int) []int {
-	var ops []int
+func (t *TablePlayer) GetOperateWithConcealedKong(c int) []tableoperate.OperateCommand {
+	var ops []tableoperate.OperateCommand
 	if t.Hcard.IsTingCard(c) {
-		ops = append(ops, tableoperate.OPERATE_WIN)
+		ops = append(ops, tableoperate.NewOperateWin(c))
 	}
 	if len(ops) > 0 {
-		ops = append(ops, tableoperate.OPERATE_PASS)
+		ops = append(ops, tableoperate.NewOperatePass())
 	}
 	return ops
 }
@@ -194,8 +203,8 @@ func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
 	default:
 		return errors.Errorf("unsupport operate, op=%d", cmd.OpType)
 	}
-	t.clearOperate(cmd.OpType) // 防止重复操作
-	t.AddOperateLog(cmd)       // 记录命令
+	t.clearOperate(cmd)  // 清除操作
+	t.AddOperateLog(cmd) // 记录命令
 	return err
 }
 
@@ -246,8 +255,7 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	winInfo.Loser = turnPid
 	handCardCopy[data.Card] += 1 // 加上胡的牌
 	mcards.HandCard = handCardCopy
-	scoreModelRule := t.table.GetScoreModelRule()
-	models := scoreModelRule.ScoreCardModel(mcards)
+	models := t.table.GetScoreModel().ScoreCardModel(mcards)
 	winMode := t.table.GetWinMode(t.Pid)
 	// 计算番数，番数由三部分组成，一是基本牌型（七对，清一色等），二是番数规则（自摸，天胡，杠上花等） , 三是杠的番数
 	scorePointRule := t.table.GetScorePointRule()
@@ -281,7 +289,7 @@ func (t *TablePlayer) DrawCard(c int) error {
 	if err := t.Hcard.Draw(c); err != nil {
 		return err
 	}
-	t.SetOperate(t.GetOperateWithDraw())
+	t.SetOperate(t.GetOperateWithDraw(c))
 	return nil
 }
 
@@ -289,7 +297,7 @@ func (t *TablePlayer) IsOperateTimeOut(timeout time.Duration) bool {
 	if timeout < 0 { // -1表示永不超时
 		return false
 	}
-	if len(t.validOperate) == 0 { // 没有操作
+	if len(t.operates) == 0 { // 没有操作
 		return false
 	}
 	if t.OperateTime.After(t.OperateStartTime) { // 中间有做过操作
@@ -300,7 +308,7 @@ func (t *TablePlayer) IsOperateTimeOut(timeout time.Duration) bool {
 
 func (t *TablePlayer) OnGameEnd() {
 	t.Wins = t.Wins[0:0] // 清空信息
-	t.validOperate = t.validOperate[0:0]
+	t.operates = t.operates[0:0]
 	t.Ready = false
 }
 

@@ -15,21 +15,21 @@ type StateDiscard struct {
 	StateBase
 	table        ITableForState
 	oplog        []OpLog
-	plyOperate   map[uint64][]int
+	plyOperate   map[uint64][]tableoperate.OperateCommand
 	operateCount map[int]int
 }
 
 func NewStateDiscard(table ITableForState) *StateDiscard {
 	return &StateDiscard{
 		table:        table,
-		plyOperate:   make(map[uint64][]int),
+		plyOperate:   make(map[uint64][]tableoperate.OperateCommand),
 		operateCount: make(map[int]int),
 	}
 }
 
 func (s *StateDiscard) Reset() {
 	s.oplog = s.oplog[0:0]
-	s.plyOperate = make(map[uint64][]int)
+	s.plyOperate = make(map[uint64][]tableoperate.OperateCommand)
 	s.operateCount = make(map[int]int)
 }
 
@@ -42,13 +42,13 @@ func (s *StateDiscard) OnEnter() error {
 	return nil
 }
 
-func (s *StateDiscard) addOperates(pid uint64, ops []int) {
+func (s *StateDiscard) addOperates(pid uint64, ops []tableoperate.OperateCommand) {
 	if len(ops) == 0 {
 		return
 	}
 	s.plyOperate[pid] = ops
 	for _, op := range ops {
-		s.operateCount[op] += 1
+		s.operateCount[op.OpType] += 1
 	}
 }
 
@@ -94,7 +94,7 @@ func (s *StateDiscard) OnPlyOperate(pid uint64, data tableoperate.OperateCommand
 		if opid == pid {
 			continue
 		}
-		if ops[0] < data.OpType { // 如果有更高优先级的操作那么，就需要等待
+		if ops[0].OpType < data.OpType { // 如果有更高优先级的操作那么，就需要等待
 			zlog.Warnf("need to wait operates, pid:%d, op:%d, waitpid:%d, ops:%v", pid, data.OpType, opid, ops)
 			return nil
 		}
@@ -106,6 +106,6 @@ func (s *StateDiscard) OnPlyOperate(pid uint64, data tableoperate.OperateCommand
 		return nil
 	}
 	// 一牌不能多用, 其他操作不能再使用了, 直接清空所有可以做的操作
-	s.plyOperate = make(map[uint64][]int)
+	s.plyOperate = make(map[uint64][]tableoperate.OperateCommand)
 	return nil
 }
