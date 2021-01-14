@@ -34,21 +34,22 @@ type ITable interface {
 
 	OnPlyOperate(pid uint64, data tableoperate.OperateCommand) error
 	SetReady(pid uint64, ready bool)
+	IsEnd() bool
 }
 
 var tables map[uint32]ITable
 var tableLock sync.RWMutex
-var poolID []uint32
-var poolLock sync.Mutex
+var IDPool []uint32
+var IDLock sync.Mutex
 
-const poolCap = 10000
+const IDPoolSize = 10000
 
 func init() {
 	tables = make(map[uint32]ITable)
-	poolID = make([]uint32, poolCap)
+	IDPool = make([]uint32, IDPoolSize)
 	startID := randomdata.Number(111111, 678910)
-	for i := 0; i < len(poolID); i++ {
-		poolID[i] = uint32(startID + i)
+	for i := 0; i < len(IDPool); i++ {
+		IDPool[i] = uint32(startID + i)
 	}
 }
 
@@ -56,23 +57,23 @@ var ErrPoolIDEmpty = errors.New("")
 var ErrPoolIDFull = errors.New("")
 var ErrCreateTableFailed = errors.New("")
 
-func poolPop() (uint32, error) {
-	poolLock.Lock()
-	defer poolLock.Unlock()
-	poolSize := len(poolID)
+func popID() (uint32, error) {
+	IDLock.Lock()
+	defer IDLock.Unlock()
+	poolSize := len(IDPool)
 	if poolSize == 0 {
 		return 0, fmt.Errorf("no id valid%w", ErrPoolIDEmpty)
 	}
-	id := poolID[poolSize-1]
-	poolID = poolID[:poolSize-1]
+	id := IDPool[poolSize-1]
+	IDPool = IDPool[:poolSize-1]
 	return id, nil
 }
 
-func poolPush(id uint32) error {
-	if len(poolID) == poolCap {
+func pushID(id uint32) error {
+	if len(IDPool) == IDPoolSize {
 		return fmt.Errorf("id pool is full%w", ErrPoolIDFull)
 	}
-	poolID = append(poolID, id)
+	IDPool = append(IDPool, id)
 	return nil
 }
 
@@ -94,6 +95,12 @@ func CreateTable(master *tableplayer.TablePlayerData, tableType int, message pro
 	return mjtable, nil
 }
 
+func RemoveTable(id uint32) {
+	tableLock.Lock()
+	defer tableLock.Unlock()
+	delete(tables, id)
+}
+
 func GetTable(id uint32) ITable {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
@@ -111,7 +118,7 @@ func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (*s
 	if err := tableData.UnpackFromPBMsg(msg.GetData()); err != nil {
 		return nil, fmt.Errorf("unpcak pb msg failed: %s", err)
 	}
-	tableID, err := poolPop()
+	tableID, err := popID()
 	if err != nil {
 		return nil, fmt.Errorf("get table id failed%w", ErrCreateTableFailed)
 	}
@@ -126,6 +133,10 @@ func Update(delta time.Duration) {
 	tableLock.RLock()
 	defer tableLock.RUnlock()
 	for _, table := range tables {
+		if table.IsEnd() { // 桌子结束后，删除改桌子
+			RemoveTable(table.GetID())
+			return
+		}
 		table.Update(delta)
 	}
 }

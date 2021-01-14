@@ -47,19 +47,26 @@ type LoseInfo struct {
 	Mode   int
 }
 
+type GameInfo struct {
+	Wins  []WinInfo
+	Loses []LoseInfo
+	Hcard handcard.HandCard
+}
+
 type TablePlayer struct {
 	TablePlayerData
-	Identity         uint32      // 身份
-	OnlineState      byte        // 是否在线
-	Ready            bool        // 是否准备
-	Wins             []*WinInfo  // 胡牌信息
-	Loses            []*LoseInfo // 点炮信息
+	Identity         uint32     // 身份
+	OnlineState      byte       // 是否在线
+	Ready            bool       // 是否准备
+	Wins             []WinInfo  // 胡牌信息
+	Loses            []LoseInfo // 点炮信息
 	Hcard            *handcard.HandCard
 	operates         []tableoperate.OperateCommand // 玩家可以指向的操作
 	OperateStartTime time.Time                     //开始操作的时间
 	OperateTime      time.Time                     // 上一个操作的时间
 	operateLog       []tableoperate.OperateCommand // 玩家的操作数据
 	table            ITableForPlayer
+	gamesInfo        []*GameInfo
 }
 
 func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePlayer {
@@ -90,7 +97,8 @@ func (t *TablePlayer) RemoveIdentity(identity uint32) uint32 {
 func (t *TablePlayer) SetOperate(ops []tableoperate.OperateCommand) {
 	t.operates = append([]tableoperate.OperateCommand{}, ops...)
 	sort.Slice(t.operates, func(i, j int) bool {
-		return t.operates[i].OpType < t.operates[j].OpType
+		return t.operates[i].OpType < t.operates[j].OpType ||
+			(t.operates[i].OpType == t.operates[j].OpType && t.operates[i].OpData.Card < t.operates[j].OpData.Card)
 	}) // 按照优先级排序
 	zlog.Debugf("ply add ops, pid:%d, addop:%v, all：%v", t.Pid, ops, t.operates)
 	t.OperateStartTime = time.Now() // 保存时间，用于超时判断
@@ -101,7 +109,7 @@ func (t *TablePlayer) GetOperates() []tableoperate.OperateCommand {
 }
 
 func (t *TablePlayer) ClearOperates() {
-	t.operates = t.operates[0:0]
+	t.operates = t.operates[:0]
 }
 
 func (t *TablePlayer) clearOperate(op tableoperate.OperateCommand) {
@@ -230,7 +238,7 @@ func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
 }
 
 func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
-	winInfo := &WinInfo{
+	winInfo := WinInfo{
 		Card: data.Card,
 		Tm:   time.Now(),
 	}
@@ -264,7 +272,7 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	winInfo.Mode = winMode
 	winInfo.Score = score
 	t.Wins = append(t.Wins, winInfo)
-	zlog.Infof("player win, pid:%d winInfo=%#v", t.Pid, *winInfo)
+	zlog.Infof("player win, pid:%d winInfo=%#v", t.Pid, winInfo)
 
 	return nil
 }
@@ -307,14 +315,24 @@ func (t *TablePlayer) IsOperateTimeOut(timeout time.Duration) bool {
 }
 
 func (t *TablePlayer) OnGameEnd() {
-	t.Wins = t.Wins[0:0] // 清空信息
-	t.operates = t.operates[0:0]
+	// 保存本局信息
+	info := &GameInfo{
+		Wins:  t.Wins,
+		Loses: t.Loses,
+		Hcard: *t.Hcard,
+	}
+	t.gamesInfo = append(t.gamesInfo, info)
+
+	// 清空信息
+	t.Wins = []WinInfo{}
+	t.Loses = []LoseInfo{}
+	t.operates = t.operates[:0]
 	t.Ready = false
 }
 
 // 放炮
 func (t *TablePlayer) LoseByDiscard(score irule.ScorePoint, winner uint64, Card int, winMode int) {
-	t.Loses = append(t.Loses, &LoseInfo{
+	t.Loses = append(t.Loses, LoseInfo{
 		Winner: winner,
 		Card:   Card,
 		Score:  score,
@@ -326,5 +344,9 @@ func (t *TablePlayer) GetLastWinInfo() *WinInfo {
 	if len(t.Wins) == 0 {
 		return nil
 	}
-	return t.Wins[len(t.Wins)-1]
+	return &t.Wins[len(t.Wins)-1]
+}
+
+func (t *TablePlayer) GetGamesInfo() []*GameInfo {
+	return t.gamesInfo
 }

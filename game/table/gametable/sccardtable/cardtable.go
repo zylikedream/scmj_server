@@ -40,6 +40,7 @@ type ScCardTable struct {
 	createTime    time.Time
 	gameStartTime time.Time
 	gameEndTime   time.Time
+	tableEndTime  time.Time
 	games         int    // 游戏局数
 	turnSeat      int    // 当前回合的玩家
 	nextTurnSeat  int    // 当前操作的玩家
@@ -130,6 +131,10 @@ func (s *ScCardTable) initMaster() {
 }
 
 func (s *ScCardTable) onGameStart() error {
+	if s.IsEnd() {
+		zlog.Errorf("game start failed, table is end")
+		return nil
+	}
 	// 初始化玩家手牌
 	s.games++ // 增加游戏局数
 
@@ -211,6 +216,10 @@ func (s *ScCardTable) IsGameStart() bool {
 
 func (s *ScCardTable) IsGameEnd() bool {
 	return !s.gameEndTime.IsZero() && s.gameEndTime.After(s.gameStartTime)
+}
+
+func (s *ScCardTable) IsEnd() bool {
+	return !s.tableEndTime.IsZero()
 }
 
 func (s *ScCardTable) GetCreateTime() time.Time {
@@ -489,7 +498,7 @@ func (s *ScCardTable) OnGameEnd() {
 	}
 
 	for _, ply := range s.players {
-		summaryInfo := s.PackPlayerSummaryInfo(ply)
+		summaryInfo := s.PackGameSummaryInfo(ply)
 		msg.Summary = append(msg.Summary, summaryInfo)
 	}
 	_ = s.broadCast(protocol.PROTOID_SC_GAME_END, msg)
@@ -508,8 +517,8 @@ func (s *ScCardTable) OnGameEnd() {
 	}
 }
 
-func (s *ScCardTable) PackPlayerSummaryInfo(ply *tableplayer.TablePlayer) *protocol.ScSummaryInfo {
-	summaryInfo := &protocol.ScSummaryInfo{
+func (s *ScCardTable) PackGameSummaryInfo(ply *tableplayer.TablePlayer) *protocol.ScGameSummaryInfo {
+	summaryInfo := &protocol.ScGameSummaryInfo{
 		WinInfo: []*protocol.ScWinInfo{},
 	}
 	summaryInfo.CardInfo = s.PackCardInfoForPlayer(ply, ply.Pid)
@@ -534,8 +543,50 @@ func (s *ScCardTable) PackPlayerSummaryInfo(ply *tableplayer.TablePlayer) *proto
 	return summaryInfo
 }
 
+func (s *ScCardTable) PackTableSummaryInfo() *protocol.ScTableEnd {
+	summaryInfo := &protocol.ScTableEnd{}
+	for _, ply := range s.players {
+		gamesInfo := ply.GetGamesInfo()
+		stat := &protocol.ScPlayerSummaryStatistics{}
+		for _, game := range gamesInfo {
+			// 统计胡牌和得分
+			for _, w := range game.Wins {
+				if winmode.IsDrawWin(w.Mode) {
+					stat.DrawWin += 1
+				} else {
+					stat.DiscardWin += 1
+				}
+				stat.TotalScore += int32(w.Score.GetFinalPoint())
+			}
+			// 统计放炮和扣分
+			for _, l := range game.Loses {
+				stat.DiscardLose += 1
+				stat.TotalScore -= int32(l.Score.GetFinalPoint())
+			}
+			// 统计杠
+			for _, k := range game.Hcard.KongCards {
+				switch k.KType {
+				case gamedefine.KONG_TYPE_CONCEALED:
+					stat.ConcealedKong += 1
+				case gamedefine.KONG_TYPE_EXPOSED:
+					stat.ExposedKong += 1
+				case gamedefine.KONG_TYPE_RAIN:
+					stat.RainKong += 1
+				}
+			}
+			// todo 查叫
+		}
+		summaryInfo.Statistics = append(summaryInfo.Statistics, stat)
+	}
+	return summaryInfo
+}
+
 func (s *ScCardTable) OnTableEnd() {
 	zlog.Info("table end")
+	// 通知结算消息
+	s.tableEndTime = time.Now()
+	summaryInfo := s.PackTableSummaryInfo()
+	_ = s.broadCast(protocol.PROTOID_SC_TABLE_END, summaryInfo)
 }
 
 func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {

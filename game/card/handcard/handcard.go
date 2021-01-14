@@ -13,12 +13,6 @@ type KongInfo struct {
 	KType int
 }
 
-const (
-	KONG_TYPE_WIND      = iota // 刮风
-	KONG_TYPE_CONCEALED        // 暗杠
-	KONG_TYPE_EXPOSED          // 明杠
-)
-
 // 玩家手牌
 type HandCard struct {
 	CardMap      map[int]int      // 手牌map
@@ -149,7 +143,7 @@ func (p *HandCard) Kong(c int) error {
 	}
 	p.KongCards = append(p.KongCards, KongInfo{
 		Card:  c,
-		KType: KONG_TYPE_WIND,
+		KType: gamedefine.KONG_TYPE_RAIN,
 	})
 	return nil
 }
@@ -176,7 +170,7 @@ func (p *HandCard) ExposedKong(c int) error {
 	}
 	p.KongCards = append(p.KongCards, KongInfo{
 		Card:  c,
-		KType: KONG_TYPE_EXPOSED,
+		KType: gamedefine.KONG_TYPE_EXPOSED,
 	})
 	p.RemovePong(c)
 	return nil
@@ -213,7 +207,7 @@ func (p *HandCard) ConcealedKong(c int) error {
 	}
 	p.KongCards = append(p.KongCards, KongInfo{
 		Card:  c,
-		KType: KONG_TYPE_CONCEALED,
+		KType: gamedefine.KONG_TYPE_CONCEALED,
 	})
 	return nil
 }
