@@ -130,13 +130,17 @@ func createScmjTable(master *tableplayer.TablePlayerData, req proto.Message) (*s
 }
 
 func Update(delta time.Duration) {
+	var endTable []ITable
 	tableLock.RLock()
-	defer tableLock.RUnlock()
 	for _, table := range tables {
 		if table.IsEnd() { // 桌子结束后，删除改桌子
-			RemoveTable(table.GetID())
-			return
+			endTable = append(endTable, table)
+			continue
 		}
 		table.Update(delta)
+	}
+	tableLock.RUnlock()
+	for _, table := range endTable {
+		RemoveTable(table.GetID())
 	}
 }
