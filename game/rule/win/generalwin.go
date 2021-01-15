@@ -10,10 +10,13 @@ import (
 
 // 通用麻将胡牌规则
 type generalWin struct {
+	maxCard int
 }
 
-func NewGeneralWin() irule.IWin {
-	return &generalWin{}
+func NewGeneralWin(maxCard int) irule.IWin {
+	return &generalWin{
+		maxCard: maxCard,
+	}
 }
 
 func (r *generalWin) CanWin(cards []int) bool {
@@ -40,7 +43,7 @@ func (r *generalWin) CanWin(cards []int) bool {
 		}
 	}
 	// 小七对
-	if len(pairPos)*2 == len(cards) {
+	if len(pairPos)*2 == r.maxCard {
 		return true
 	}
 	// 遍历所有可能的情况

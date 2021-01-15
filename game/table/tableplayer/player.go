@@ -73,9 +73,7 @@ func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePl
 	ply := &TablePlayer{
 		TablePlayerData: *playerData,
 		table:           table,
-		operateLog: []tableoperate.OperateCommand{
-			{OpType: tableoperate.OPERATE_EMPTY}, // 哨兵命令
-		},
+		operateLog:      []tableoperate.OperateCommand{},
 	}
 	return ply
 }
@@ -327,6 +325,7 @@ func (t *TablePlayer) OnGameEnd() {
 	t.Wins = []WinInfo{}
 	t.Loses = []LoseInfo{}
 	t.operates = t.operates[:0]
+	t.operateLog = t.operateLog[:0]
 	t.Ready = false
 }
 

@@ -82,7 +82,7 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	// t.shuffleRule = shuffle.NewRandomShuffle()
 	t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
-	t.winRule = win.NewGeneralWin()
+	t.winRule = win.NewGeneralWin(MAX_HAND_CARD_NUM)
 	t.dealRule = deal.NewGeneralDeal()
 	t.scoreCardModel = scorecardmodel.NewGeneralScoreCardModel()
 	t.scorePointRule = scorepoint.NewGeneralScorePoint()

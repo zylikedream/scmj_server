@@ -3,7 +3,7 @@ package win
 import "testing"
 
 func BenchmarkCommonWin_CanWin(b *testing.B) {
-	winRule := NewGeneralWin()
+	winRule := NewGeneralWin(14)
 	//handCards := []int{6, 7, 9, 9, 12, 12, 13, 14, 15, 15, 17, 26, 27, 28}
 	//handCards := []int{ 1, 2, 2, 3, 3, 4, 4, 4, 4, 5, 6, 6}
 	//handCards := []int{1, 1, 5, 5, 9, 9, 11, 11, 12, 12, 13, 13, 19, 25}
@@ -14,7 +14,7 @@ func BenchmarkCommonWin_CanWin(b *testing.B) {
 }
 
 func TestCanWin(t *testing.T) {
-	winRule := NewGeneralWin()
+	winRule := NewGeneralWin(14)
 	var handCards []int
 	// 是否可以胡7对
 	handCards = []int{1, 1, 5, 5, 9, 9, 11, 11, 12, 12, 13, 13, 19, 19}
