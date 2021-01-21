@@ -24,9 +24,9 @@ func NewWinModeModel() *WinModeModel {
 	return &WinModeModel{}
 }
 
-func (w *WinModeModel) GetWinMode(winPid uint64, turnPid uint64, turnOps []tableoperate.OperateCommand, discards []int) int {
+func (w *WinModeModel) GetWinMode(winPid uint64, turnPid uint64, dealer uint64, turnOps []tableoperate.OperateCommand, discards []int) int {
 	if winPid == turnPid { // 自摸
-		if len(discards) == 0 && len(turnOps) == 0 {
+		if len(discards) == 0 && dealer == winPid { // 庄家第一张牌
 			return WIN_DRAW_MODE_GOD
 		} else {
 			lastOp := turnOps[len(turnOps)-1].OpType
