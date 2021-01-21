@@ -44,7 +44,7 @@ type ScCardTable struct {
 	games         int    // 游戏局数
 	turnSeat      int    // 当前回合的玩家
 	nextTurnSeat  int    // 当前操作的玩家
-	master        uint64 // 庄家
+	dealer        uint64 // 庄家
 
 	data         *ScTableData
 	events       *ScTableEvent
@@ -73,14 +73,14 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 		createTime: time.Now(),
 		data:       data,
 	}
-	// t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT, gamedefine.CARD_SUIT_CHARACTER) // 三坊
-	t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT) // 两坊
+	t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT, gamedefine.CARD_SUIT_CHARACTER) // 三坊
+	// t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO, gamedefine.CARD_SUIT_DOT) // 两坊
 	// t.boardRule = board.NewSuitBoard(gamedefine.CARD_SUIT_BAMBOO) // 一坊
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	// t.shuffleRule = shuffle.NewRandomShuffle()
-	t.shuffleRule = shuffle.NewSortShuffle()
+	t.shuffleRule = shuffle.NewRandomShuffle()
+	// t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.winRule = win.NewGeneralWin(MAX_HAND_CARD_NUM)
 	t.dealRule = deal.NewGeneralDeal()
@@ -127,7 +127,7 @@ func (s *ScCardTable) initMaster() {
 	s.nextTurnSeat = rand.Intn(len(s.players)) // 随机庄家
 	master := s.GetPlayerBySeat(s.nextTurnSeat)
 	master.AddIdentity(gamedefine.TABLE_IDENTIY_DEALER)
-	s.master = master.Pid
+	s.dealer = master.Pid
 }
 
 func (s *ScCardTable) onGameStart() error {
@@ -157,7 +157,7 @@ func (s *ScCardTable) onGameStart() error {
 
 	s.initializeHandCard()
 	// 广播游戏开始消息
-	if err := s.broadCast(protocol.PROTOID_SC_GAME_START, msg); err != nil {
+	if err := s.BroadCast(protocol.PROTOID_SC_GAME_START, msg); err != nil {
 		zlog.Errorf("broadCast game start failed, err=%s", err)
 		return err
 	}
@@ -231,7 +231,7 @@ func (s *ScCardTable) GetTableNumber() uint32 {
 }
 
 // 广播同样的消息给所有玩家
-func (s *ScCardTable) broadCast(protoID protocol.PROTOID, msg proto.Message) error {
+func (s *ScCardTable) BroadCast(protoID protocol.PROTOID, msg proto.Message) error {
 	return s.broadCastRaw(protoID, func(pid uint64, seat int) proto.Message {
 		return msg
 	})
@@ -281,7 +281,7 @@ func (s *ScCardTable) onJoinEvent(pid player.PID) error {
 	}
 	msg.Player = s.PackPlayerData(ply)
 	msg.SeatIndex = int32(len(s.players)) - 1
-	if err := s.broadCast(protocol.PROTOID_SC_JOIN_TABLE, msg); err != nil {
+	if err := s.BroadCast(protocol.PROTOID_SC_JOIN_TABLE, msg); err != nil {
 		return err
 	}
 
@@ -441,7 +441,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 	}
 
 	// 更新下一个回合的玩家
-	if operate.OpType != tableoperate.OPERATE_PASS {
+	if operate.OpType != tableoperate.OPERATE_PASS && operate.OpType != tableoperate.OPERATE_DING_QUE {
 		turnSeat := s.GetTurnSeat()
 		maxPlayer := s.data.MaxPlayer
 		plySeat := s.GetPlayerSeat(ply.Pid)
@@ -464,7 +464,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 			},
 		},
 	}
-	if err := s.broadCast(protocol.PROTOID_SC_NOTIFY_OPERATE, pbOperate); err != nil {
+	if err := s.BroadCast(protocol.PROTOID_SC_NOTIFY_OPERATE, pbOperate); err != nil {
 		return err
 	}
 
@@ -501,15 +501,15 @@ func (s *ScCardTable) OnGameEnd() {
 		summaryInfo := s.PackGameSummaryInfo(ply)
 		msg.Summary = append(msg.Summary, summaryInfo)
 	}
-	_ = s.broadCast(protocol.PROTOID_SC_GAME_END, msg)
+	_ = s.BroadCast(protocol.PROTOID_SC_GAME_END, msg)
 
 	for _, ply := range s.players {
 		ply.OnGameEnd()
 	}
 	// 清除庄家信息
-	master := s.GetPlayerByPid(s.master)
+	master := s.GetPlayerByPid(s.dealer)
 	master.RemoveIdentity(gamedefine.TABLE_IDENTIY_DEALER)
-	s.master = 0
+	s.dealer = 0
 
 	if s.games >= int(s.data.GameTurn) {
 		s.OnTableEnd()
@@ -586,7 +586,7 @@ func (s *ScCardTable) OnTableEnd() {
 	// 通知结算消息
 	s.tableEndTime = time.Now()
 	summaryInfo := s.PackTableSummaryInfo()
-	_ = s.broadCast(protocol.PROTOID_SC_TABLE_END, summaryInfo)
+	_ = s.BroadCast(protocol.PROTOID_SC_TABLE_END, summaryInfo)
 }
 
 func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCommand) error {
@@ -732,7 +732,7 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 		Pid:   pid,
 		Ready: ready,
 	}
-	_ = s.broadCast(protocol.PROTOID_SC_PLAYER_READY, readData)
+	_ = s.BroadCast(protocol.PROTOID_SC_PLAYER_READY, readData)
 
 	if !ready {
 		return
@@ -752,7 +752,7 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 }
 
 func (s *ScCardTable) GetWinMode(pid uint64) int {
-	return s.winModeModel.GetWinMode(pid, s.GetTurnPlayer().Pid, s.GetTurnPlayer().GetOperateLog(), s.discards)
+	return s.winModeModel.GetWinMode(pid, s.GetTurnPlayer().Pid, s.dealer, s.GetTurnPlayer().GetOperateLog(), s.discards)
 }
 
 func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {
@@ -773,4 +773,8 @@ func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {
 		return err
 	}
 	return nil
+}
+
+func (s *ScCardTable) GetBoardCard() *boardcard.BoardCard {
+	return s.board
 }

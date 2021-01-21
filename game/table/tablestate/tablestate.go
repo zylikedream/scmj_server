@@ -2,10 +2,13 @@ package tablestate
 
 import (
 	"fmt"
+	"zinx-mj/game/card/boardcard"
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/game/table/tableplayer"
+	"zinx-mj/network/protocol"
 
 	"github.com/aceld/zinx/zlog"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/pkg/errors"
 )
@@ -19,6 +22,8 @@ type ITableForState interface {
 	SetNextSeat(seat int)
 	GetNextTurnPlayer() *tableplayer.TablePlayer
 	IsGameStart() bool
+	BroadCast(protoID protocol.PROTOID, msg proto.Message) error
+	GetBoardCard() *boardcard.BoardCard
 }
 
 const (
@@ -28,6 +33,7 @@ const (
 	TABLE_STATE_PONG           = "state_gong"
 	TABLE_STATE_DISCARD        = "state_discard"
 	TABLE_STATE_DRAW           = "state_draw"
+	TABLE_STATE_DING_QUE       = "state_ding_que"
 	TABLE_STATE_INIT           = "state_init"
 )
 
@@ -46,6 +52,7 @@ func New(table ITableForState) *StateMachine {
 			TABLE_STATE_KONG_CONCEALED: NewStateKongConcealed(table),
 			TABLE_STATE_PONG:           NewStatePong(table),
 			TABLE_STATE_INIT:           NewStateInit(table),
+			TABLE_STATE_DING_QUE:       NewStateDingQue(table),
 		},
 	}
 	for name, state := range sm.states {

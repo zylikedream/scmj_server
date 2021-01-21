@@ -9,7 +9,8 @@ const (
 	OPERATE_KONG_RAIN      // 下雨
 	OPERATE_PONG
 	OPERATE_CHOW
-	OPERATE_DISCARD // 出牌
+	OPERATE_DISCARD  // 出牌
+	OPERATE_DING_QUE // 定缺
 	OPERATE_PASS
 )
 
@@ -100,5 +101,12 @@ func NewOperateEmpty() OperateCommand {
 		OpData: OperateData{
 			Card: 0,
 		},
+	}
+}
+
+func NewOperateDingQue() OperateCommand {
+	return OperateCommand{
+		OpType: OPERATE_DING_QUE,
+		OpData: OperateData{},
 	}
 }

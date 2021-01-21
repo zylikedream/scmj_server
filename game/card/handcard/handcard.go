@@ -5,6 +5,7 @@ import (
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/util"
 
+	"github.com/aceld/zinx/zlog"
 	"github.com/pkg/errors"
 )
 
@@ -23,6 +24,7 @@ type HandCard struct {
 	KongCards    []KongInfo       // 玩家杠的牌
 	PongCards    []int            // 玩家碰的牌
 	MaxCardCount int              // 玩家最大手牌数量
+	DingQueSuit  int              // 定缺的花色
 }
 
 func New(maxCardCount int) *HandCard {
@@ -254,4 +256,13 @@ func (p *HandCard) GetGuardHandCard() []int {
 		}
 	}
 	return cards
+}
+
+func (p *HandCard) DingQue(cardsuit int) error {
+	if p.DingQueSuit != gamedefine.CARD_SUIT_EMPTY {
+		return errors.Errorf("already ding que, old=%d, new=%d", p.DingQueSuit, cardsuit)
+	}
+	p.DingQueSuit = cardsuit
+	zlog.Debugf("ding que %d", cardsuit)
+	return nil
 }

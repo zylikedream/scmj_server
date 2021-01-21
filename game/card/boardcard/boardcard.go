@@ -11,6 +11,7 @@ type BoardCard struct {
 	Cards        []int // 剩余的牌
 	DiscardCards []int // 玩家已出的牌
 	DrawCards    []int // 玩家已摸的牌
+	CardSuits    []int // 花色
 }
 
 /*
@@ -18,9 +19,9 @@ type BoardCard struct {
  * Param: cardType 花色类型
  * Create: zhangyi 2020-07-02 18:18:49
  */
-func NewBoardCardBySuit(cardTypes ...int) *BoardCard {
+func NewBoardCardBySuit(cardSuits ...int) *BoardCard {
 	bc := &BoardCard{}
-	for _, cardType := range cardTypes {
+	for _, cardType := range cardSuits {
 		for i := 1; i <= 9; i++ { // 1到9
 			for j := 0; j < 4; j++ { // 每张牌4张
 				bc.CardsTotal = append(bc.CardsTotal, cardType*gamedefine.CARD_BASE+i)
@@ -29,7 +30,12 @@ func NewBoardCardBySuit(cardTypes ...int) *BoardCard {
 	}
 	bc.Cards = make([]int, len(bc.CardsTotal))
 	copy(bc.Cards, bc.CardsTotal)
+	bc.CardSuits = cardSuits
 	return bc
+}
+
+func (bc *BoardCard) GetSuits() []int {
+	return bc.CardSuits
 }
 
 /*

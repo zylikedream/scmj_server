@@ -47,9 +47,6 @@ func (s *StateDraw) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) e
 	if turnPly.Pid != pid {
 		return errors.Errorf("player error, want:%d, get:%d", turnPly.Pid, pid)
 	}
-	if !turnPly.IsOperateValid(data.OpType) {
-		return errors.Errorf("operate unvalid, op:%d validops:%v", data.OpType, turnPly.GetOperates())
-	}
 	if data.OpType == tableoperate.OPERATE_PASS { // 跳过pass操作
 		return nil
 	}

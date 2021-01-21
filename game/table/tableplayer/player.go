@@ -4,7 +4,6 @@ import (
 	"sort"
 	"time"
 	"zinx-mj/game/card/handcard"
-	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/player"
@@ -119,6 +118,7 @@ func (t *TablePlayer) clearOperate(op tableoperate.OperateCommand) {
 				break
 			}
 		}
+	case tableoperate.OPERATE_DING_QUE: // 定缺不会清空
 	default:
 		t.ClearOperates() // 清除所有其他操作
 	}
@@ -205,6 +205,8 @@ func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
 	case tableoperate.OPERATE_KONG_EXPOSED:
 	case tableoperate.OPERATE_KONG_RAIN:
 	case tableoperate.OPERATE_PONG:
+	case tableoperate.OPERATE_DING_QUE:
+		err = t.dingQue(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_PASS:
 	default:
 		return errors.Errorf("unsupport operate, op=%d", cmd.OpType)
@@ -215,7 +217,7 @@ func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
 }
 
 func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
-	err := t.table.GetDiscardRule().Discard(t.Hcard, data.Card, gamedefine.CARD_SUIT_EMPTY)
+	err := t.table.GetDiscardRule().Discard(t.Hcard, data.Card)
 	if err != nil {
 		return err
 	}
@@ -276,10 +278,11 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 }
 
 func (t *TablePlayer) kongConcealed(opType int, data tableoperate.OperateData) error {
-	if err := t.Hcard.ConcealedKong(data.Card); err != nil {
-		return err
-	}
-	return nil
+	return t.Hcard.ConcealedKong(data.Card)
+}
+
+func (t *TablePlayer) dingQue(opType int, data tableoperate.OperateData) error {
+	return t.Hcard.DingQue(data.Card)
 }
 
 func (t *TablePlayer) IsWin() bool {

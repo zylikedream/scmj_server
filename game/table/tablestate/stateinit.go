@@ -25,7 +25,7 @@ func (s *StateInit) OnUpdate() (IState, error) {
 	if !s.table.IsGameStart() {
 		return nil, nil
 	}
-	return s.stateMachine.GetState(TABLE_STATE_DRAW), nil
+	return s.stateMachine.GetState(TABLE_STATE_DING_QUE), nil
 }
 
 func (s *StateInit) OnExit() error {
