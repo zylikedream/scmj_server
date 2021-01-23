@@ -59,7 +59,6 @@ type ScCardTable struct {
 	pongRule       irule.IPong
 	shuffleRule    irule.IShuffle
 	tingRule       irule.ITing
-	winRule        irule.IWin
 	dealRule       irule.IDeal
 	scoreCardModel irule.IScoreCardModel
 	scorePointRule irule.IScorePoint
@@ -79,10 +78,9 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	t.shuffleRule = shuffle.NewRandomShuffle()
-	// t.shuffleRule = shuffle.NewSortShuffle()
+	// t.shuffleRule = shuffle.NewRandomShuffle()
+	t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
-	t.winRule = win.NewGeneralWin(MAX_HAND_CARD_NUM)
 	t.dealRule = deal.NewGeneralDeal()
 	t.scoreCardModel = scorecardmodel.NewGeneralScoreCardModel()
 	t.scorePointRule = scorepoint.NewGeneralScorePoint()
@@ -189,7 +187,7 @@ func (s *ScCardTable) GetPlayerBySeat(seat int) *tableplayer.TablePlayer {
 }
 
 func (s *ScCardTable) PlayerJoin(plyData *tableplayer.TablePlayerData, identity uint32) (*tableplayer.TablePlayer, error) {
-	ply := tableplayer.NewTablePlayer(plyData, s)
+	ply := tableplayer.NewTablePlayer(plyData, s, win.NewGeneralWin(MAX_HAND_CARD_NUM))
 	ply.AddIdentity(identity)
 	s.players = append(s.players, ply)
 
@@ -396,10 +394,6 @@ func (s *ScCardTable) NotifyPlyOperate(ply *tableplayer.TablePlayer) error {
 
 func (s *ScCardTable) GetPlayers() []*tableplayer.TablePlayer {
 	return s.players
-}
-
-func (s *ScCardTable) GetWinRule() irule.IWin {
-	return s.winRule
 }
 
 func (s *ScCardTable) GetDiscardRule() irule.IDiscard {
@@ -752,7 +746,16 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 }
 
 func (s *ScCardTable) GetWinMode(pid uint64) int {
-	return s.winModeModel.GetWinMode(pid, s.GetTurnPlayer().Pid, s.dealer, s.GetTurnPlayer().GetOperateLog(), s.discards)
+	turnPly := s.GetTurnPlayer()
+	info := irule.WinModeInfo{
+		WinPid:   pid,
+		TurnPid:  turnPly.Pid,
+		TurnOps:  turnPly.GetOperateLog(),
+		TurnDraw: turnPly.Hcard.DrawCards,
+		Dealer:   s.dealer,
+		Discards: s.discards,
+	}
+	return s.winModeModel.GetWinMode(info)
 }
 
 func (s *ScCardTable) distributeOperate(ply *tableplayer.TablePlayer) error {

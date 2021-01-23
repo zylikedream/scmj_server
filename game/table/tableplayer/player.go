@@ -4,6 +4,7 @@ import (
 	"sort"
 	"time"
 	"zinx-mj/game/card/handcard"
+	"zinx-mj/game/gamedefine"
 	"zinx-mj/game/rule/irule"
 	"zinx-mj/game/table/tableoperate"
 	"zinx-mj/player"
@@ -14,7 +15,6 @@ import (
 )
 
 type ITableForPlayer interface {
-	GetWinRule() irule.IWin
 	GetDiscardRule() irule.IDiscard
 	GetTingRule() irule.ITing
 	GetTurnPlayer() *TablePlayer
@@ -66,13 +66,15 @@ type TablePlayer struct {
 	operateLog       []tableoperate.OperateCommand // 玩家的操作数据
 	table            ITableForPlayer
 	gamesInfo        []*GameInfo
+	winRule          irule.IWin
 }
 
-func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer) *TablePlayer {
+func NewTablePlayer(playerData *TablePlayerData, table ITableForPlayer, winRule irule.IWin) *TablePlayer {
 	ply := &TablePlayer{
 		TablePlayerData: *playerData,
 		table:           table,
 		operateLog:      []tableoperate.OperateCommand{},
+		winRule:         winRule,
 	}
 	return ply
 }
@@ -138,6 +140,9 @@ func (t *TablePlayer) GetOperateWithDiscard(c int) []tableoperate.OperateCommand
 	if t.Hcard.IsTingCard(c) {
 		ops = append(ops, tableoperate.NewOperateWin(c))
 	}
+	if gamedefine.GetCardSuit(c) == t.Hcard.DingQueSuit {
+		return ops
+	}
 
 	if t.Hcard.GetCardNum(c) == 3 {
 		ops = append(ops, tableoperate.NewOperateKongRain(c))
@@ -156,10 +161,13 @@ func (t *TablePlayer) GetOperateWithDiscard(c int) []tableoperate.OperateCommand
 // 自己回合操作没有跳过选项, 必须要做出操作
 func (t *TablePlayer) GetOperateWithDraw(drawCard int) []tableoperate.OperateCommand {
 	var ops []tableoperate.OperateCommand
-	if t.table.GetWinRule().CanWin(t.Hcard.GetHandCard()) {
+	if t.winRule.CanWin(t.Hcard.GetHandCard()) {
 		ops = append(ops, tableoperate.NewOperateWin(drawCard))
 	}
 	for c, num := range t.Hcard.CardMap {
+		if gamedefine.GetCardSuit(c) == t.Hcard.DingQueSuit {
+			continue
+		}
 		if num == 4 { // 暗杠
 			ops = append(ops, tableoperate.NewOperateKongConcealed(c))
 		} else if t.Hcard.IsPonged(c) { // 明杠
@@ -232,7 +240,7 @@ func (t *TablePlayer) discard(opType int, data tableoperate.OperateData) error {
 		}
 	}()
 	tingRule := t.table.GetTingRule()
-	t.Hcard.TingCard = tingRule.GetTingCard(t.Hcard.GetHandCard(), t.table.GetWinRule())
+	t.Hcard.TingCard = tingRule.GetTingCard(t.Hcard.GetHandCard(), t.winRule)
 
 	return nil
 }
@@ -250,7 +258,7 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 		PongCard: t.Hcard.PongCards,
 		KongCard: t.Hcard.KongCards,
 		WinCard:  data.Card,
-		WiRule:   t.table.GetWinRule(),
+		WiRule:   t.winRule,
 	}
 
 	// 如果是自摸就把胡的牌从手牌中去掉
@@ -282,7 +290,11 @@ func (t *TablePlayer) kongConcealed(opType int, data tableoperate.OperateData) e
 }
 
 func (t *TablePlayer) dingQue(opType int, data tableoperate.OperateData) error {
-	return t.Hcard.DingQue(data.Card)
+	if err := t.Hcard.DingQue(data.Card); err != nil {
+		return err
+	}
+	t.winRule.SetData(irule.DATA_KEY_DING_QUE, data.Card)
+	return nil
 }
 
 func (t *TablePlayer) IsWin() bool {

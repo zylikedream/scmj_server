@@ -1,6 +1,9 @@
 package winmode
 
-import "zinx-mj/game/table/tableoperate"
+import (
+	"zinx-mj/game/rule/irule"
+	"zinx-mj/game/table/tableoperate"
+)
 
 const (
 	WIN_DRAW_MODE_MIN   = iota
@@ -24,28 +27,28 @@ func NewWinModeModel() *WinModeModel {
 	return &WinModeModel{}
 }
 
-func (w *WinModeModel) GetWinMode(winPid uint64, turnPid uint64, dealer uint64, turnOps []tableoperate.OperateCommand, discards []int) int {
-	if winPid == turnPid { // 自摸
-		if len(discards) == 0 && dealer == winPid { // 庄家第一张牌
+func (w *WinModeModel) GetWinMode(info irule.WinModeInfo) int {
+	if info.WinPid == info.TurnPid { // 自摸
+		if len(info.TurnDraw) == 1 && info.Dealer == info.WinPid { // 庄家第一张牌
 			return WIN_DRAW_MODE_GOD
 		} else {
-			lastOp := turnOps[len(turnOps)-1].OpType
+			lastOp := info.TurnOps[len(info.TurnOps)-1].OpType
 			if lastOp == tableoperate.OPERATE_KONG_CONCEALED || lastOp == tableoperate.OPERATE_KONG_EXPOSED || lastOp == tableoperate.OPERATE_KONG_RAIN {
 				return WIN_DRAW_MODE_KONG
 			}
 			return WIN_DRAW_MODE_PLAIN
 		}
 	} else { // 点炮
-		if len(discards) == 1 {
+		if len(info.Discards) == 1 {
 			return WIN_DISCARD_MODE_DEVIL
 		} else {
-			lastOp := turnOps[len(turnOps)-1].OpType
+			lastOp := info.TurnOps[len(info.TurnOps)-1].OpType
 			if lastOp == tableoperate.OPERATE_KONG_EXPOSED {
 				return WIN_DISCARD_MODE_RUB_KONG
 			}
-			if len(turnOps) >= 2 {
+			if len(info.TurnOps) >= 2 {
 				// 杠上炮的话，当前玩家上上个是杠的动作
-				prevOp := turnOps[len(turnOps)-2].OpType
+				prevOp := info.TurnOps[len(info.TurnOps)-2].OpType
 				if prevOp == tableoperate.OPERATE_KONG_EXPOSED || prevOp == tableoperate.OPERATE_KONG_CONCEALED || prevOp == tableoperate.OPERATE_KONG_RAIN {
 					return WIN_DISCARD_MODE_KONG
 				}

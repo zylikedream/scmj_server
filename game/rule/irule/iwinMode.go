@@ -3,6 +3,14 @@ package irule
 import "zinx-mj/game/table/tableoperate"
 
 // 计算规则
+type WinModeInfo struct {
+	WinPid   uint64
+	TurnPid  uint64                        // 当前玩家
+	TurnOps  []tableoperate.OperateCommand // 玩家做过的操作
+	TurnDraw []int                         // 玩家摸过的牌
+	Dealer   uint64
+	Discards []int
+}
 type IWinModeModel interface {
-	GetWinMode(winPid uint64, turnPid uint64, dealer uint64, turnOps []tableoperate.OperateCommand, discards []int) int
+	GetWinMode(info WinModeInfo) int
 }

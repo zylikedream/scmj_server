@@ -10,22 +10,39 @@ import (
 
 // 通用麻将胡牌规则
 type generalWin struct {
-	maxCard int
+	maxCard     int
+	dingQueSuit int
 }
 
 func NewGeneralWin(maxCard int) irule.IWin {
 	return &generalWin{
-		maxCard: maxCard,
+		maxCard:     maxCard,
+		dingQueSuit: gamedefine.CARD_SUIT_EMPTY,
 	}
 }
 
-func (r *generalWin) CanWin(cards []int) bool {
+func (g *generalWin) SetData(key string, value interface{}) {
+	switch key {
+	case irule.DATA_KEY_DING_QUE:
+		g.dingQueSuit, _ = value.(int)
+	}
+}
+
+func (g *generalWin) CanWin(cards []int) bool {
 	defer func() {
 		if err := recover(); err != nil {
 			zlog.Errorf("win error, cards:%v", cards)
 			panic(err)
 		}
 	}()
+
+	if g.dingQueSuit != gamedefine.CARD_SUIT_EMPTY {
+		for _, card := range cards {
+			if gamedefine.GetCardSuit(card) == g.dingQueSuit {
+				return false
+			}
+		}
+	}
 
 	cardLen := len(cards)
 	if cardLen == 0 {
@@ -43,7 +60,7 @@ func (r *generalWin) CanWin(cards []int) bool {
 		}
 	}
 	// 小七对
-	if len(pairPos)*2 == r.maxCard {
+	if len(pairPos)*2 == g.maxCard {
 		return true
 	}
 	// 遍历所有可能的情况
