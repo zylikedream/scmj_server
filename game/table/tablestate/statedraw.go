@@ -20,7 +20,6 @@ func NewStateDraw(table ITableForState) *StateDraw {
 }
 
 func (s *StateDraw) OnEnter() error {
-	// 按照优先级排序
 	if err := s.table.DrawCard(); err != nil {
 		return err
 	}

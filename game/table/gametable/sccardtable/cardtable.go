@@ -140,12 +140,6 @@ func (s *ScCardTable) onGameStart() error {
 	s.initMaster()
 	s.UpdateTurnSeat()
 
-	// 稍后广播玩家手牌
-	msg := &protocol.ScGameStart{}
-	// todo 抽象筛子点数rule
-	msg.DiePoint = rand.Int31n(6) + 1
-	msg.Games = int32(s.games)
-
 	// 设置初始化状态
 	if err := s.stateMachine.SetInitState(tablestate.TABLE_STATE_INIT); err != nil {
 		return err
@@ -153,8 +147,14 @@ func (s *ScCardTable) onGameStart() error {
 
 	s.gameStartTime = time.Now()
 
-	s.initializeHandCard()
+	if err := s.initializeHandCard(); err != nil {
+		return err
+	}
 	// 广播游戏开始消息
+	msg := &protocol.ScGameStart{
+		DiePoint: rand.Int31n(6) + 1,
+		Games:    int32(s.games),
+	}
 	if err := s.BroadCast(protocol.PROTOID_SC_GAME_START, msg); err != nil {
 		zlog.Errorf("broadCast game start failed, err=%s", err)
 		return err
@@ -291,7 +291,7 @@ const (
 	MAX_HAND_CARD_NUM = 14
 )
 
-func (s *ScCardTable) initializeHandCard() {
+func (s *ScCardTable) initializeHandCard() error {
 	s.board = s.boardRule.NewBoard()
 	s.shuffleRule.Shuffle(s.board.Cards)
 
@@ -299,6 +299,7 @@ func (s *ScCardTable) initializeHandCard() {
 		_ = s.players[i].InitHandCard(s.board.Cards[:HAND_CARD_NUM], MAX_HAND_CARD_NUM)
 		s.board.Cards = s.board.Cards[HAND_CARD_NUM:]
 	}
+	return nil
 }
 
 func (s *ScCardTable) PackTableCardForPlayer(pid uint64) *protocol.ScCardInfo {

@@ -103,12 +103,16 @@ func (t *TablePlayer) SetOperate(ops []tableoperate.OperateCommand) {
 	t.OperateStartTime = time.Now() // 保存时间，用于超时判断
 }
 
+func (t *TablePlayer) AddOperate(ops ...tableoperate.OperateCommand) {
+	t.SetOperate(append(t.operates, ops...))
+}
+
 func (t *TablePlayer) GetOperates() []tableoperate.OperateCommand {
 	return t.operates
 }
 
 func (t *TablePlayer) ClearOperates() {
-	t.operates = t.operates[:0]
+	t.SetOperate([]tableoperate.OperateCommand{})
 }
 
 func (t *TablePlayer) clearOperate(op tableoperate.OperateCommand) {
