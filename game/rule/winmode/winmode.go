@@ -28,7 +28,7 @@ func NewWinModeModel() *WinModeModel {
 }
 
 func (w *WinModeModel) GetWinMode(info irule.WinModeInfo) int {
-	if info.WinPid == info.TurnPid { // 自摸
+	if info.DrawWin { // 自摸
 		if len(info.TurnDraw) == 1 && info.Dealer == info.WinPid { // 庄家第一张牌
 			return WIN_DRAW_MODE_GOD
 		} else {

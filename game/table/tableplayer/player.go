@@ -21,7 +21,7 @@ type ITableForPlayer interface {
 	GetScoreModel() irule.IScoreCardModel
 	GetWinModeModel() irule.IWinModeModel
 	GetScorePointRule() irule.IScorePoint
-	GetWinMode(pid uint64) int
+	GetWinMode(pid uint64, selfDraw bool) int
 }
 
 // 解耦TablePlayer和Player直接的关系
@@ -99,12 +99,8 @@ func (t *TablePlayer) SetOperate(ops []tableoperate.OperateCommand) {
 		return t.operates[i].OpType < t.operates[j].OpType ||
 			(t.operates[i].OpType == t.operates[j].OpType && t.operates[i].OpData.Card < t.operates[j].OpData.Card)
 	}) // 按照优先级排序
-	zlog.Debugf("ply add ops, pid:%d, addop:%v, all：%v", t.Pid, ops, t.operates)
+	zlog.Debugf("ply set ops, pid:%d, all：%v", t.Pid, t.operates)
 	t.OperateStartTime = time.Now() // 保存时间，用于超时判断
-}
-
-func (t *TablePlayer) AddOperate(ops ...tableoperate.OperateCommand) {
-	t.SetOperate(append(t.operates, ops...))
 }
 
 func (t *TablePlayer) GetOperates() []tableoperate.OperateCommand {
@@ -142,7 +138,7 @@ func (t *TablePlayer) IsOperateValid(op int) bool {
 func (t *TablePlayer) GetOperateWithDiscard(c int) []tableoperate.OperateCommand {
 	var ops []tableoperate.OperateCommand
 	if t.Hcard.IsTingCard(c) {
-		ops = append(ops, tableoperate.NewOperateWin(c))
+		ops = append(ops, tableoperate.NewOperateDiscardWin(c))
 	}
 	if gamedefine.GetCardSuit(c) == t.Hcard.DingQueSuit {
 		return ops
@@ -166,7 +162,7 @@ func (t *TablePlayer) GetOperateWithDiscard(c int) []tableoperate.OperateCommand
 func (t *TablePlayer) GetOperateWithDraw(drawCard int) []tableoperate.OperateCommand {
 	var ops []tableoperate.OperateCommand
 	if t.winRule.CanWin(t.Hcard.GetHandCard()) {
-		ops = append(ops, tableoperate.NewOperateWin(drawCard))
+		ops = append(ops, tableoperate.NewOperateDrawWin(drawCard))
 	}
 	for c, num := range t.Hcard.CardMap {
 		if gamedefine.GetCardSuit(c) == t.Hcard.DingQueSuit {
@@ -181,15 +177,21 @@ func (t *TablePlayer) GetOperateWithDraw(drawCard int) []tableoperate.OperateCom
 	if len(ops) > 0 {
 		ops = append(ops, tableoperate.NewOperatePass())
 	}
-	ops = append(ops, tableoperate.NewOperateDiscard(drawCard)) // 自己回合可以打牌
+	ops = append(ops, tableoperate.NewOperateDiscard()) // 自己回合可以打牌
 	return ops
+}
+
+// 碰了以后可以做的操作
+func (t *TablePlayer) GetOperateWithPong(c int) []tableoperate.OperateCommand {
+	// 碰了以后只能打牌
+	return []tableoperate.OperateCommand{tableoperate.NewOperateDiscard()}
 }
 
 // 其他人明杠可以做的操作
 func (t *TablePlayer) GetOperateWithConcealedKong(c int) []tableoperate.OperateCommand {
 	var ops []tableoperate.OperateCommand
 	if t.Hcard.IsTingCard(c) {
-		ops = append(ops, tableoperate.NewOperateWin(c))
+		ops = append(ops, tableoperate.NewOperateDiscardWin(c))
 	}
 	if len(ops) > 0 {
 		ops = append(ops, tableoperate.NewOperatePass())
@@ -205,20 +207,32 @@ func (t *TablePlayer) GetOperateLog() []tableoperate.OperateCommand {
 	return t.operateLog
 }
 
+func (t *TablePlayer) GetLastOperateLog() tableoperate.OperateCommand {
+	if len(t.operateLog) > 0 {
+		return t.operateLog[len(t.operateLog)-1]
+	}
+	return tableoperate.NewOperateEmpty()
+}
+
 func (t *TablePlayer) DoOperate(cmd tableoperate.OperateCommand) error {
 	var err error
 	switch cmd.OpType {
 	case tableoperate.OPERATE_DISCARD:
 		err = t.discard(cmd.OpType, cmd.OpData)
-	case tableoperate.OPERATE_WIN:
+	case tableoperate.OPERATE_DRAW_WIN, tableoperate.OPERATE_DISCARD_WIN:
 		err = t.win(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_KONG_CONCEALED:
 		err = t.kongConcealed(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_KONG_EXPOSED:
+		err = t.kongExposed(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_KONG_RAIN:
+		err = t.kongRain(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_PONG:
+		err = t.pong(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_DING_QUE:
 		err = t.dingQue(cmd.OpType, cmd.OpData)
+	case tableoperate.OPERATE_DRAW:
+		err = t.DrawCard(cmd.OpType, cmd.OpData)
 	case tableoperate.OPERATE_PASS:
 	default:
 		return errors.Errorf("unsupport operate, op=%d", cmd.OpType)
@@ -265,8 +279,9 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 		WiRule:   t.winRule,
 	}
 
-	// 如果是自摸就把胡的牌从手牌中去掉
-	if t.Pid == t.table.GetTurnPlayer().Pid {
+	drawWin := opType == tableoperate.OPERATE_DRAW_WIN
+	// 如果是自摸就把胡的牌从手牌中去掉(为了和放炮统一处理)
+	if drawWin {
 		if err := t.Hcard.DecCard(data.Card, 1); err != nil {
 			return err
 		}
@@ -276,7 +291,7 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 	handCardCopy[data.Card] += 1 // 加上胡的牌
 	mcards.HandCard = handCardCopy
 	models := t.table.GetScoreModel().ScoreCardModel(mcards)
-	winMode := t.table.GetWinMode(t.Pid)
+	winMode := t.table.GetWinMode(t.Pid, drawWin)
 	// 计算番数，番数由三部分组成，一是基本牌型（七对，清一色等），二是番数规则（自摸，天胡，杠上花等） , 三是杠的番数
 	scorePointRule := t.table.GetScorePointRule()
 	score := scorePointRule.ScorePoint(models, winMode, len(t.Hcard.KongCards), handCardCopy) // 牌型番数
@@ -291,6 +306,21 @@ func (t *TablePlayer) win(opType int, data tableoperate.OperateData) error {
 
 func (t *TablePlayer) kongConcealed(opType int, data tableoperate.OperateData) error {
 	return t.Hcard.ConcealedKong(data.Card)
+}
+
+func (t *TablePlayer) kongExposed(opType int, data tableoperate.OperateData) error {
+	return t.Hcard.ExposedKong(data.Card)
+}
+
+func (t *TablePlayer) kongRain(opType int, data tableoperate.OperateData) error {
+	return t.Hcard.RainKong(data.Card)
+}
+
+func (t *TablePlayer) pong(opType int, data tableoperate.OperateData) error {
+	if err := t.Hcard.Pong(data.Card); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (t *TablePlayer) dingQue(opType int, data tableoperate.OperateData) error {
@@ -310,11 +340,10 @@ func (t *TablePlayer) InitHandCard(cards []int, cardMax int) error {
 	return t.Hcard.SetHandCard(cards)
 }
 
-func (t *TablePlayer) DrawCard(c int) error {
-	if err := t.Hcard.Draw(c); err != nil {
+func (t *TablePlayer) DrawCard(opType int, data tableoperate.OperateData) error {
+	if err := t.Hcard.Draw(data.Card); err != nil {
 		return err
 	}
-	t.SetOperate(t.GetOperateWithDraw(c))
 	return nil
 }
 

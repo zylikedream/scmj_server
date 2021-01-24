@@ -30,7 +30,7 @@ const (
 	TABLE_STATE_WIN            = "state_win"
 	TABLE_STATE_KONG           = "state_kong"
 	TABLE_STATE_KONG_CONCEALED = "state_kong_concealed"
-	TABLE_STATE_PONG           = "state_gong"
+	TABLE_STATE_PONG           = "state_pong"
 	TABLE_STATE_DISCARD        = "state_discard"
 	TABLE_STATE_DRAW           = "state_draw"
 	TABLE_STATE_DING_QUE       = "state_ding_que"
@@ -110,7 +110,7 @@ func (sm *StateMachine) Update() error {
 
 func getStateByOperate(op int) string {
 	switch op {
-	case tableoperate.OPERATE_WIN:
+	case tableoperate.OPERATE_DRAW_WIN, tableoperate.OPERATE_DISCARD_WIN:
 		return TABLE_STATE_WIN
 	case tableoperate.OPERATE_KONG_RAIN, tableoperate.OPERATE_KONG_EXPOSED:
 		return TABLE_STATE_KONG

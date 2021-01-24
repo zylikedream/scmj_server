@@ -69,7 +69,7 @@ func (s *StateKongConcealed) OnPlyOperate(pid uint64, data tableoperate.OperateC
 	if pidIndex == -1 {
 		return errors.Errorf("find pid failed, pid=%d, validpids=%v", pid, s.pids)
 	}
-	if data.OpType != tableoperate.OPERATE_WIN {
+	if data.OpType != tableoperate.OPERATE_DISCARD_WIN {
 		return errors.Errorf("kong concealed can only do win operate, pid=%d, data=%v", pid, data)
 	}
 	util.RemoveElemWithoutOrder(pidIndex, &s.pids)

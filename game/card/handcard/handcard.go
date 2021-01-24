@@ -136,10 +136,10 @@ func (p *HandCard) GetCardBySuit(cardSuit int) []int {
 }
 
 /*
- * Descrp: 刮风
+ * Descrp: 下雨
  * Create: zhangyi 2020-07-03 16:34:57
  */
-func (p *HandCard) Kong(c int) error {
+func (p *HandCard) RainKong(c int) error {
 	if err := p.DecCard(c, 3); err != nil {
 		return err
 	}

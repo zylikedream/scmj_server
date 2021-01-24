@@ -367,7 +367,8 @@ func (s *ScCardTable) DrawCard() error {
 		return err
 	}
 	zlog.Infof("player draw card, pid:%d, card:%d", turnPly.Pid, card)
-	if err = turnPly.DrawCard(card); err != nil {
+	drawCmd := tableoperate.NewOperateDraw(card)
+	if err = turnPly.DoOperate(drawCmd); err != nil {
 		return err
 	}
 
@@ -382,7 +383,7 @@ func (s *ScCardTable) DrawCard() error {
 		return err
 	}
 	// 下发玩家操作
-	if err = s.distributeOperate(turnPly); err != nil {
+	if err = s.AfterPlyOperate(turnPly.Pid, drawCmd); err != nil {
 		return err
 	}
 	return nil
@@ -505,6 +506,7 @@ func (s *ScCardTable) OnGameEnd() {
 	master := s.GetPlayerByPid(s.dealer)
 	master.RemoveIdentity(gamedefine.TABLE_IDENTIY_DEALER)
 	s.dealer = 0
+	s.discards = []int{}
 
 	if s.games >= int(s.data.GameTurn) {
 		s.OnTableEnd()
@@ -591,8 +593,16 @@ func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCo
 		err = s.AfterDiscard(pid, operate.OpData.Card)
 	case tableoperate.OPERATE_KONG_CONCEALED: // 玩家可能会抢杠
 		err = s.AfterConcealedKong(pid, operate.OpData.Card)
-	case tableoperate.OPERATE_WIN:
-		err = s.AfterWin(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_DISCARD_WIN:
+		err = s.AfterDiscardWin(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_DRAW_WIN:
+		err = s.AfterDrawWin(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_DING_QUE:
+		err = s.AfterDingQue(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_PONG:
+		err = s.AfterPong(pid, operate.OpData.Card)
+	case tableoperate.OPERATE_DRAW:
+		err = s.AfterDraw(pid, operate.OpData.Card)
 	}
 	return err
 }
@@ -648,9 +658,6 @@ func (s *ScCardTable) GetNextTurnPlayer() *tableplayer.TablePlayer {
 // 更新的玩家回合时需要清掉玩家的所有操作
 func (s *ScCardTable) UpdateTurnSeat() {
 	s.turnSeat = s.nextTurnSeat
-	for _, ply := range s.players {
-		ply.ClearOperates()
-	}
 }
 
 func (s *ScCardTable) SetNextSeat(seat int) {
@@ -665,7 +672,7 @@ func (s *ScCardTable) AfterDiscard(pid uint64, c int) error {
 	for i := range s.players {
 		ply := s.players[i]
 		if ply.Pid == pid {
-			continue
+			// continue
 		}
 		ops := ply.GetOperateWithDiscard(c)
 		ply.SetOperate(ops)
@@ -686,22 +693,17 @@ func (s *ScCardTable) AfterConcealedKong(pid uint64, c int) error {
 		ply.SetOperate(ops)
 		if err := s.distributeOperate(ply); err != nil {
 			return err
-		} // 下发玩家可以做的操作
+		}
 
 	}
 	return nil
 }
 
-func (s *ScCardTable) AfterWin(pid uint64, c int) error {
+func (s *ScCardTable) AfterDrawWin(pid uint64, c int) error {
 	ply := s.GetPlayerByPid(pid)
 	winInfo := ply.GetLastWinInfo()
 	if winInfo == nil {
 		return errors.Errorf("can't find win info, pid:%d", pid)
-	}
-	if winInfo.Loser != pid { // 点炮
-		loser := s.GetPlayerByPid(winInfo.Loser)
-		loser.LoseByDiscard(winInfo.Score, pid, winInfo.Card, winInfo.Mode)
-		return nil
 	}
 	// 自摸
 	for _, ply := range s.players {
@@ -711,6 +713,46 @@ func (s *ScCardTable) AfterWin(pid uint64, c int) error {
 		ply.LoseByDiscard(winInfo.Score, pid, winInfo.Card, winInfo.Mode)
 	}
 	return nil
+}
+
+func (s *ScCardTable) AfterDiscardWin(pid uint64, c int) error {
+	ply := s.GetPlayerByPid(pid)
+	winInfo := ply.GetLastWinInfo()
+	if winInfo == nil {
+		return errors.Errorf("can't find win info, pid:%d", pid)
+	}
+	loser := s.GetPlayerByPid(winInfo.Loser)
+	loser.LoseByDiscard(winInfo.Score, pid, winInfo.Card, winInfo.Mode)
+	return nil
+}
+
+func (s *ScCardTable) AfterPong(pid uint64, c int) error {
+	turnPly := s.GetTurnPlayer()
+	if pid != turnPly.Pid {
+		return nil
+	}
+
+	turnPly.SetOperate(turnPly.GetOperateWithPong(c))
+	return s.distributeOperate(turnPly)
+}
+
+func (s *ScCardTable) AfterDraw(pid uint64, c int) error {
+	turnPly := s.GetTurnPlayer()
+	if pid != turnPly.Pid {
+		return nil
+	}
+
+	turnPly.SetOperate(turnPly.GetOperateWithDraw(c))
+	return s.distributeOperate(turnPly)
+}
+
+func (s *ScCardTable) AfterDingQue(pid uint64, c int) error {
+	turnPly := s.GetTurnPlayer()
+	if pid != turnPly.Pid {
+		return nil
+	}
+	turnPly.SetOperate(turnPly.GetOperateWithDraw(turnPly.Hcard.GetLastDraw()))
+	return s.distributeOperate(turnPly)
 }
 
 func (s *ScCardTable) SetReady(pid uint64, ready bool) {
@@ -746,11 +788,11 @@ func (s *ScCardTable) SetReady(pid uint64, ready bool) {
 	s.events.Add(EVENT_GAME_START)
 }
 
-func (s *ScCardTable) GetWinMode(pid uint64) int {
+func (s *ScCardTable) GetWinMode(pid uint64, selfDraw bool) int {
 	turnPly := s.GetTurnPlayer()
 	info := irule.WinModeInfo{
 		WinPid:   pid,
-		TurnPid:  turnPly.Pid,
+		DrawWin:  selfDraw,
 		TurnOps:  turnPly.GetOperateLog(),
 		TurnDraw: turnPly.Hcard.DrawCards,
 		Dealer:   s.dealer,

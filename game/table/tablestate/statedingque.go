@@ -37,7 +37,7 @@ func (s *StateDingQue) OnEnter() error {
 		return err
 	}
 	for _, ply := range s.table.GetPlayers() {
-		ply.AddOperate(tableoperate.NewOperateDingQue())
+		ply.SetOperate([]tableoperate.OperateCommand{tableoperate.NewOperateDingQue()})
 	}
 	// 通知定缺
 	msg := &protocol.ScDingQueStart{}
@@ -62,8 +62,10 @@ func (s *StateDingQue) OnUpdate() (IState, error) {
 			msg.Dingque = append(msg.Dingque, dqInfo)
 		}
 		_ = s.table.BroadCast(protocol.PROTOID_SC_DING_QUE_FINISH, msg)
+
 		s.notifyDingque = true
 	}
+
 	return s.draw.OnUpdate()
 }
 
