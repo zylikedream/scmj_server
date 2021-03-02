@@ -373,7 +373,7 @@ func (s *ScCardTable) DrawCard() error {
 	}
 
 	err = s.broadCastRaw(protocol.PROTOID_SC_DRAW_CARD, func(pid uint64, seat int) proto.Message {
-		msg := &protocol.ScDrawCard{Pid: pid, Card: -1}
+		msg := &protocol.ScDrawCard{Pid: turnPly.Pid, Card: -1}
 		if turnPly.Pid == pid { // 摸到的牌只会发给本人
 			msg.Card = int32(card)
 		}

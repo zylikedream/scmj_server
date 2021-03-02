@@ -76,7 +76,7 @@ func (c *JoinTable) Handle(request ziface.IRequest) {
 		zlog.Errorf("unpack join table proto failed, err:%s\n", err)
 		return
 	}
-	tb := tablemgr.GetTable(req.TableId)
+	tb := tablemgr.GetTable(uint32(req.TableId))
 	if tb == nil {
 		zlog.Errorf("get table failed, id:%d", req.TableId)
 		return

@@ -32,9 +32,11 @@ func (w *WinModeModel) GetWinMode(info irule.WinModeInfo) int {
 		if len(info.TurnDraw) == 1 && info.Dealer == info.WinPid { // 庄家第一张牌
 			return WIN_DRAW_MODE_GOD
 		} else {
-			lastOp := info.TurnOps[len(info.TurnOps)-1].OpType
-			if lastOp == tableoperate.OPERATE_KONG_CONCEALED || lastOp == tableoperate.OPERATE_KONG_EXPOSED || lastOp == tableoperate.OPERATE_KONG_RAIN {
-				return WIN_DRAW_MODE_KONG
+			if len(info.TurnOps) >= 2 {
+				lastOp := info.TurnOps[len(info.TurnOps)-2].OpType // 上上一个是扛
+				if lastOp == tableoperate.OPERATE_KONG_CONCEALED || lastOp == tableoperate.OPERATE_KONG_EXPOSED || lastOp == tableoperate.OPERATE_KONG_RAIN {
+					return WIN_DRAW_MODE_KONG
+				}
 			}
 			return WIN_DRAW_MODE_PLAIN
 		}
