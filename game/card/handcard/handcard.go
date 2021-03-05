@@ -2,6 +2,7 @@ package handcard
 
 import (
 	"fmt"
+	"sort"
 	"zinx-mj/game/gamedefine"
 	"zinx-mj/util"
 
@@ -237,6 +238,12 @@ func (p *HandCard) GetCardTotalCount() int {
 
 func (p *HandCard) GetHandCard() []int {
 	return util.IntMapToIntSlice(p.CardMap)
+}
+
+func (p *HandCard) GetSortHandCard() []int {
+	cards := util.IntMapToIntSlice(p.CardMap)
+	sort.Ints(cards)
+	return cards
 }
 
 // 推荐打的牌

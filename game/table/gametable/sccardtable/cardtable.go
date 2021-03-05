@@ -2,7 +2,6 @@ package sccardtable
 
 import (
 	"math/rand"
-	"sort"
 	"time"
 	"zinx-mj/game/card/boardcard"
 	"zinx-mj/game/gamedefine"
@@ -78,8 +77,8 @@ func NewTable(tableID uint32, master *tableplayer.TablePlayerData, data *ScTable
 	t.chowRule = chow.NewEmptyChow()
 	t.discardRule = discard.NewDingQueDiscard()
 	t.pongRule = pong.NewGeneralPong()
-	// t.shuffleRule = shuffle.NewRandomShuffle()
-	t.shuffleRule = shuffle.NewSortShuffle()
+	t.shuffleRule = shuffle.NewRandomShuffle()
+	// t.shuffleRule = shuffle.NewSortShuffle()
 	t.tingRule = ting.NewGeneralRule()
 	t.dealRule = deal.NewGeneralDeal()
 	t.scoreCardModel = scorecardmodel.NewGeneralScoreCardModel()
@@ -318,13 +317,14 @@ func (s *ScCardTable) PackTableCardForPlayer(pid uint64) *protocol.ScCardInfo {
 func (s *ScCardTable) PackCardInfoForPlayer(ply *tableplayer.TablePlayer, pid uint64) *protocol.PlayerCardInfo {
 	var cards []int
 	if ply.Pid == pid {
-		cards = ply.Hcard.GetHandCard()
+		cards = ply.Hcard.GetSortHandCard()
 	} else {
 		cards = ply.Hcard.GetGuardHandCard()
 	}
 	playerCardInfo := &protocol.PlayerCardInfo{
 		HandCard: &protocol.HandCardData{},
 	}
+
 	for _, c := range cards {
 		playerCardInfo.HandCard.Holders = append(playerCardInfo.HandCard.Holders, int32(c))
 	}
@@ -459,8 +459,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return err
 	}
 
-	cards := ply.Hcard.GetHandCard()
-	sort.Ints(cards)
+	cards := ply.Hcard.GetSortHandCard()
 	zlog.Infof("after operate, card:%v, op:%v", cards, operate)
 
 	// 检测本局是否结束
