@@ -423,11 +423,11 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		return errors.Errorf("unalid op for ply op=%d, pid=%d", operate.OpType, pid)
 	}
 
-	if err := s.stateMachine.GetCurState().OnPlyOperate(pid, operate); err != nil {
+	if err := ply.DoOperate(operate); err != nil {
 		return err
 	}
 
-	if err := ply.DoOperate(operate); err != nil {
+	if err := s.stateMachine.GetCurState().OnPlyOperate(pid, operate); err != nil {
 		return err
 	}
 
@@ -437,6 +437,7 @@ func (s *ScCardTable) OnPlyOperate(pid uint64, operate tableoperate.OperateComma
 		maxPlayer := s.data.MaxPlayer
 		plySeat := s.GetPlayerSeat(ply.Pid)
 		// 靠后的玩家才会更新
+		zlog.Debugf("try to update next turn seat, plyseat=%d, turnSeat=%d, maxPlayer=%d", plySeat, turnSeat, maxPlayer)
 		if util.SeatRelative(plySeat, turnSeat, maxPlayer) > util.SeatRelative(s.nextTurnSeat, turnSeat, maxPlayer) {
 			s.SetNextSeat(plySeat)
 		}
@@ -647,15 +648,18 @@ func (s *ScCardTable) GetNextTurnPlayer() *tableplayer.TablePlayer {
 	return s.GetPlayerBySeat(s.nextTurnSeat)
 }
 
-// 更新的玩家回合时需要清掉玩家的所有操作
 func (s *ScCardTable) UpdateTurnSeat() {
 	s.turnSeat = s.nextTurnSeat
+	updateMsg := &protocol.ScUpdateTurnPly{}
+	updateMsg.Turn = int32(s.turnSeat)
+	_ = s.BroadCast(protocol.PROTOID_SC_UPDATE_TURN_PLAYER, updateMsg)
 }
 
 func (s *ScCardTable) SetNextSeat(seat int) {
 	if seat >= s.data.MaxPlayer {
 		seat = 0
 	}
+	zlog.Debugf("set next TurnSeat from:%d->%d", s.nextTurnSeat, seat)
 	s.nextTurnSeat = seat
 }
 
@@ -719,26 +723,31 @@ func (s *ScCardTable) AfterDiscardWin(pid uint64, c int) error {
 }
 
 func (s *ScCardTable) AfterPong(pid uint64, c int) error {
-	turnPly := s.GetTurnPlayer()
-	if pid != turnPly.Pid {
-		return nil
-	}
-
-	turnPly.SetOperate(turnPly.GetOperateWithPong(c))
-	return s.distributeOperate(turnPly)
+	ply := s.GetPlayerByPid(pid)
+	ply.SetOperate(ply.GetOperateWithPong(c))
+	return s.distributeOperate(ply)
 }
 
 func (s *ScCardTable) AfterDraw(pid uint64, c int) error {
-	turnPly := s.GetTurnPlayer()
-	if pid != turnPly.Pid {
-		return nil
-	}
-
-	turnPly.SetOperate(turnPly.GetOperateWithDraw(c))
-	return s.distributeOperate(turnPly)
+	ply := s.GetPlayerByPid(pid)
+	ply.SetOperate(ply.GetOperateWithDraw(c))
+	return s.distributeOperate(ply)
 }
 
 func (s *ScCardTable) DingQueFinish() error {
+
+	// 通知定缺消息
+	msg := &protocol.ScDingQueFinish{}
+	for _, ply := range s.players {
+		dqInfo := &protocol.ScDingqueInfo{
+			Pid:    ply.Pid,
+			DqSuit: int32(ply.Hcard.DingQueSuit),
+		}
+		msg.Dingque = append(msg.Dingque, dqInfo)
+	}
+
+	_ = s.BroadCast(protocol.PROTOID_SC_DING_QUE_FINISH, msg)
+
 	turnPly := s.GetTurnPlayer()
 	turnPly.SetOperate(turnPly.GetOperateWithDraw(turnPly.Hcard.GetLastDraw()))
 	return s.distributeOperate(turnPly)

@@ -266,9 +266,6 @@ func (p *HandCard) GetGuardHandCard() []int {
 }
 
 func (p *HandCard) DingQue(cardsuit int) error {
-	if p.DingQueSuit != gamedefine.CARD_SUIT_EMPTY {
-		return errors.Errorf("already ding que, old=%d, new=%d", p.DingQueSuit, cardsuit)
-	}
 	p.DingQueSuit = cardsuit
 	zlog.Debugf("ding que %d", cardsuit)
 	return nil

@@ -68,15 +68,7 @@ func (s *StateDingQue) OnPlyOperate(pid uint64, data tableoperate.OperateCommand
 		return nil
 	}
 	// 所有玩家定缺成功
-	msg := &protocol.ScDingQueFinish{}
-	for pid, suit := range s.dingQue {
-		dqInfo := &protocol.ScDingqueInfo{
-			Pid:    pid,
-			DqSuit: int32(suit),
-		}
-		msg.Dingque = append(msg.Dingque, dqInfo)
-	}
-	_ = s.table.BroadCast(protocol.PROTOID_SC_DING_QUE_FINISH, msg)
+
 	if err := s.table.DingQueFinish(); err != nil {
 		return err
 	}
