@@ -28,12 +28,11 @@ func (g *generalTing) GetTingCard(cards []int, winRule irule.IWin) map[int]struc
 			panic(err)
 		}
 	}()
-	for _, c := range maybeCards {
-		cards = append(cards, c)
-		if winRule.CanWin(cards) {
+	for c := range maybeCards {
+		mayWinCards := append([]int{c}, cards...)
+		if winRule.CanWin(mayWinCards) {
 			tingCards[c] = struct{}{}
 		}
-		cards = cards[:len(cards)-1]
 	}
 	return tingCards
 }
@@ -47,10 +46,13 @@ func (g *generalTing) CanTing(cards []int, winRule irule.IWin) bool {
  * Notice: 一个牌的自身和左右两张牌是可能听的牌
  * Create: zhangyi 2020-08-03 22:08:15
  */
-func getMaybeTing(cards []int) []int {
-	var maybeCards []int
+func getMaybeTing(cards []int) map[int]struct{} {
+	maybeCards := map[int]struct{}{}
 	for _, c := range cards {
-		maybeCards = append(maybeCards, gamedefine.GetNeighborCards(c)...)
+		nbor := gamedefine.GetNeighborCards(c)
+		for _, n := range nbor {
+			maybeCards[n] = struct{}{}
+		}
 	}
 	return maybeCards
 }

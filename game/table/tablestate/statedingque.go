@@ -9,10 +9,9 @@ import (
 
 type StateDingQue struct {
 	StateBase
-	draw          *StateDraw
-	table         ITableForState
-	dingQue       map[uint64]int
-	notifyDingque bool
+	draw    *StateDraw
+	table   ITableForState
+	dingQue map[uint64]int
 }
 
 func NewStateDingQue(table ITableForState) *StateDingQue {
@@ -49,39 +48,37 @@ func (s *StateDingQue) OnEnter() error {
 }
 
 func (s *StateDingQue) OnUpdate() (IState, error) {
-	if !s.IsDingQueFinish() {
-		return nil, nil
-	}
-	if !s.notifyDingque {
-		msg := &protocol.ScDingQueFinish{}
-		for pid, suit := range s.dingQue {
-			dqInfo := &protocol.ScDingqueInfo{
-				Pid:    pid,
-				DqSuit: int32(suit),
-			}
-			msg.Dingque = append(msg.Dingque, dqInfo)
-		}
-		_ = s.table.BroadCast(protocol.PROTOID_SC_DING_QUE_FINISH, msg)
-
-		s.notifyDingque = true
-	}
-
 	return s.draw.OnUpdate()
 }
 
 func (s *StateDingQue) OnExit() error {
 	s.dingQue = make(map[uint64]int)
-	s.notifyDingque = false
 	return s.draw.OnExit()
 }
 
 func (s *StateDingQue) OnPlyOperate(pid uint64, data tableoperate.OperateCommand) error {
+	if s.IsDingQueFinish() {
+		return s.draw.OnPlyOperate(pid, data)
+	}
+	if data.OpType != tableoperate.OPERATE_DING_QUE {
+		return errors.Errorf("can't allow operate in dingque, op:%d", data.OpType)
+	}
+	s.dingQue[pid] = data.OpData.Card
 	if !s.IsDingQueFinish() {
-		if data.OpType != tableoperate.OPERATE_DING_QUE {
-			return errors.Errorf("can't allow operate in dingque, op:%d", data.OpType)
-		}
-		s.dingQue[pid] = data.OpData.Card
 		return nil
 	}
-	return s.draw.OnPlyOperate(pid, data)
+	// 所有玩家定缺成功
+	msg := &protocol.ScDingQueFinish{}
+	for pid, suit := range s.dingQue {
+		dqInfo := &protocol.ScDingqueInfo{
+			Pid:    pid,
+			DqSuit: int32(suit),
+		}
+		msg.Dingque = append(msg.Dingque, dqInfo)
+	}
+	_ = s.table.BroadCast(protocol.PROTOID_SC_DING_QUE_FINISH, msg)
+	if err := s.table.DingQueFinish(); err != nil {
+		return err
+	}
+	return nil
 }

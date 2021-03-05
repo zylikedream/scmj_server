@@ -24,6 +24,7 @@ type ITableForState interface {
 	IsGameStart() bool
 	BroadCast(protoID protocol.PROTOID, msg proto.Message) error
 	GetBoardCard() *boardcard.BoardCard
+	DingQueFinish() error
 }
 
 const (

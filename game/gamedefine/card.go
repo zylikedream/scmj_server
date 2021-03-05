@@ -37,7 +37,7 @@ func GetCardNumber(suit int, cardIndex int) int {
  * Create: zhangyi 2020-08-03 22:51:07
  */
 func GetNeighborCards(card int) []int {
-	var neighbors []int
+	neighbors := []int{card}
 	if IsValidCard(card + 1) {
 		neighbors = append(neighbors, card+1)
 	}

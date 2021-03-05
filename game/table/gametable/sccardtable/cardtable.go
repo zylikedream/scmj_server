@@ -389,11 +389,6 @@ func (s *ScCardTable) DrawCard() error {
 	return nil
 }
 
-func (s *ScCardTable) NotifyPlyOperate(ply *tableplayer.TablePlayer) error {
-	// todo
-	return nil
-}
-
 func (s *ScCardTable) GetPlayers() []*tableplayer.TablePlayer {
 	return s.players
 }
@@ -597,8 +592,6 @@ func (s *ScCardTable) AfterPlyOperate(pid uint64, operate tableoperate.OperateCo
 		err = s.AfterDiscardWin(pid, operate.OpData.Card)
 	case tableoperate.OPERATE_DRAW_WIN:
 		err = s.AfterDrawWin(pid, operate.OpData.Card)
-	case tableoperate.OPERATE_DING_QUE:
-		err = s.AfterDingQue(pid, operate.OpData.Card)
 	case tableoperate.OPERATE_PONG:
 		err = s.AfterPong(pid, operate.OpData.Card)
 	case tableoperate.OPERATE_DRAW:
@@ -672,7 +665,7 @@ func (s *ScCardTable) AfterDiscard(pid uint64, c int) error {
 	for i := range s.players {
 		ply := s.players[i]
 		if ply.Pid == pid {
-			// continue
+			continue
 		}
 		ops := ply.GetOperateWithDiscard(c)
 		ply.SetOperate(ops)
@@ -746,11 +739,8 @@ func (s *ScCardTable) AfterDraw(pid uint64, c int) error {
 	return s.distributeOperate(turnPly)
 }
 
-func (s *ScCardTable) AfterDingQue(pid uint64, c int) error {
+func (s *ScCardTable) DingQueFinish() error {
 	turnPly := s.GetTurnPlayer()
-	if pid != turnPly.Pid {
-		return nil
-	}
 	turnPly.SetOperate(turnPly.GetOperateWithDraw(turnPly.Hcard.GetLastDraw()))
 	return s.distributeOperate(turnPly)
 }
